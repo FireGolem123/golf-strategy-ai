@@ -37,5 +37,6 @@ export async function searchCourses(query) {
 export async function getCourseById(id) {
   if (!id) throw new Error('Course ID is required.')
   const data = await apiFetch(`/v1/courses/${id}`)
-  return data || null
+  // API may wrap in { course: {...} } — unwrap if so
+  return data?.course || data || null
 }

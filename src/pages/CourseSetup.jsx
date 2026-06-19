@@ -15,6 +15,19 @@ const EMPTY_HOLE = {
   personal_notes: '',
 }
 
+// Flexible tees lookup — handles male/Male/MALE/mens etc.
+function getTeesForGender(tees, gender) {
+  if (!tees || typeof tees !== 'object') return []
+  // Try exact key first, then capitalized, then case-insensitive scan
+  if (Array.isArray(tees[gender])) return tees[gender]
+  const cap = gender.charAt(0).toUpperCase() + gender.slice(1)
+  if (Array.isArray(tees[cap])) return tees[cap]
+  for (const [k, v] of Object.entries(tees)) {
+    if (k.toLowerCase() === gender && Array.isArray(v)) return v
+  }
+  return []
+}
+
 // Map a tee name to the yardage column it best fits
 function teeToYardageCol(teeName) {
   const n = (teeName || '').toLowerCase()
@@ -49,7 +62,7 @@ export default function CourseSetup() {
   const [importSuccess, setImportSuccess] = useState(false)
 
   // Derived: current tee box selection
-  const availableTees = importCourse?.tees?.[importGender] || []
+  const availableTees = getTeesForGender(importCourse?.tees, importGender)
   const selectedTeeBox = availableTees.find(t => t.tee_name === importTeeName) || null
 
   // ── Manual entry effects ───────────────────────────────────────
@@ -159,10 +172,13 @@ export default function CourseSetup() {
   async function handleSelectResult(course) {
     setImportLoading(true); setImportError(null); setSearchResults([])
     try {
-      const full = await getCourseById(course.id)
+      // The spec says search returns full Course objects, so check if tees are already present
+      const hasTees = course.tees && typeof course.tees === 'object' &&
+        Object.values(course.tees).some(v => Array.isArray(v) && v.length > 0)
+
+      let full = hasTees ? course : await getCourseById(course.id)
       if (!full) throw new Error('Course details not found.')
 
-      // Default name: course_name if it's distinct from club_name, else just club_name
       const derivedName = (full.course_name && full.course_name !== full.club_name)
         ? `${full.club_name} — ${full.course_name}`
         : (full.club_name || full.course_name || '')
@@ -170,8 +186,6 @@ export default function CourseSetup() {
       setImportCourse(full)
       setImportCourseName(derivedName)
       setImportGender('male')
-      // tee name is set by the useEffect watching importGender + importCourse
-
     } catch (err) {
       setImportError(err.message)
     } finally {
@@ -340,7 +354,12 @@ export default function CourseSetup() {
           </div>
 
           {availableTees.length === 0 ? (
-            <p className="text-muted">No {importGender} tees found for this course.</p>
+            <div className="cs-error">
+              No {importGender} tees found.
+              {importCourse?.tees && typeof importCourse.tees === 'object' && Object.keys(importCourse.tees).length > 0
+                ? ` Tees keys from API: "${Object.keys(importCourse.tees).join('", "')}". Check console (F12) for full response.`
+                : ' The API returned no tees data for this course. Check console (F12) for the full response.'}
+            </div>
           ) : (
             <>
               {/* Tee name dropdown */}
