@@ -1,0 +1,195 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 72px;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  background: var(--green-800);
+  border-top: 1px solid var(--green-600);
+  height: 64px;
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--gray-400);
+  transition: color 0.15s;
+  padding: 8px 0;
+}
+
+.nav-item.active {
+  color: var(--green-300);
+}
+
+.nav-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Shared page styles */
+.page {
+  padding: 20px 16px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+/* Cards */
+.card {
+  background: var(--green-800);
+  border: 1px solid var(--green-600);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-200);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  background: var(--green-900);
+  border: 1px solid var(--green-600);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--white);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--green-300);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: var(--gray-600);
+}
+
+.form-select option {
+  background: var(--green-800);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--green-400);
+  color: var(--green-900);
+  width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--green-300);
+}
+
+.btn-secondary {
+  background: var(--green-700);
+  color: var(--white);
+  border: 1px solid var(--green-600);
+}
+
+.btn-danger {
+  background: var(--red);
+  color: var(--white);
+}
+
+/* Status / info text */
+.text-muted {
+  color: var(--gray-400);
+  font-size: 13px;
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--green-700);
+  margin: 16px 0;
+}
