@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { getClubRecommendation } from '../lib/claude'
+import { getCurrentWeather, windDir } from '../lib/weather'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 import { useCourseData } from '../hooks/useCourseData'
 import '../styles/Home.css'
@@ -26,7 +27,6 @@ function StarRating({ value, onChange }) {
 }
 
 function RecommendationDisplay({ text }) {
-  // Render the structured response with section highlighting
   const lines = text.split('\n')
   return (
     <div className="recommendation">
@@ -52,10 +52,15 @@ export default function Home() {
   const [selectedHole, setSelectedHole] = useState('')
   const [playerProfile, setPlayerProfile] = useState(null)
   const [clubProfiles, setClubProfiles] = useState([])
+  const [shotHistory, setShotHistory] = useState([])
   const [recommendation, setRecommendation] = useState('')
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState(null)
   const [activeRoundId, setActiveRoundId] = useState(null)
+
+  const [weather, setWeather] = useState(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState(null)
 
   // Feedback state
   const [showFeedback, setShowFeedback] = useState(false)
@@ -69,63 +74,62 @@ export default function Home() {
 
   useEffect(() => {
     loadInitialData()
+    fetchWeather()
   }, [])
 
   async function loadInitialData() {
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Load course names
-    const { data: holes } = await supabase
-      .from('course_holes')
-      .select('course_name')
-    if (holes) {
-      const unique = [...new Set(holes.map(h => h.course_name))]
-      setCourseNames(unique)
-    }
+    const { data: holes } = await supabase.from('course_holes').select('course_name')
+    if (holes) setCourseNames([...new Set(holes.map(h => h.course_name))])
 
     if (!user) return
 
-    // Load player profile
     const { data: profile } = await supabase
-      .from('player_profile')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
+      .from('player_profile').select('*').eq('user_id', user.id).maybeSingle()
     setPlayerProfile(profile)
 
-    // Load club profiles
     const { data: clubs } = await supabase
-      .from('club_profiles')
-      .select('*')
-      .eq('user_id', user.id)
+      .from('club_profiles').select('*').eq('user_id', user.id)
       .order('carry_distance', { ascending: false })
     setClubProfiles(clubs || [])
 
-    // Get or create today's round
+    const { data: shots } = await supabase
+      .from('shot_history')
+      .select('club_suggested, club_used, suggestion_rating, outcome')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(30)
+    setShotHistory(shots || [])
+
     const today = new Date().toISOString().split('T')[0]
     const { data: existingRound } = await supabase
-      .from('rounds')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .maybeSingle()
+      .from('rounds').select('id').eq('user_id', user.id).eq('date', today).maybeSingle()
+    if (existingRound) setActiveRoundId(existingRound.id)
+  }
 
-    if (existingRound) {
-      setActiveRoundId(existingRound.id)
+  async function fetchWeather() {
+    setWeatherLoading(true)
+    setWeatherError(null)
+    try {
+      const w = await getCurrentWeather()
+      setWeather(w)
+    } catch (err) {
+      setWeatherError(err.message)
+    } finally {
+      setWeatherLoading(false)
     }
   }
 
   async function handleSubmit() {
     if (!transcript.trim()) return
-
     setLoading(true)
     setApiError(null)
     setRecommendation('')
     setShowFeedback(false)
     setFeedbackSaved(false)
-
     try {
-      const result = await getClubRecommendation(transcript, playerProfile, clubProfiles, courseHole)
+      const result = await getClubRecommendation(transcript, playerProfile, clubProfiles, courseHole, shotHistory, weather)
       setRecommendation(result)
       setShowFeedback(true)
     } catch (err) {
@@ -139,30 +143,20 @@ export default function Home() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Ensure we have a round for today
     let roundId = activeRoundId
     if (!roundId) {
       const today = new Date().toISOString().split('T')[0]
       const { data: round } = await supabase
         .from('rounds')
-        .insert({
-          user_id: user.id,
-          course_name: selectedCourse || null,
-          date: today,
-        })
-        .select('id')
-        .single()
-      if (round) {
-        roundId = round.id
-        setActiveRoundId(round.id)
-      }
+        .insert({ user_id: user.id, course_name: selectedCourse || null, date: today })
+        .select('id').single()
+      if (round) { roundId = round.id; setActiveRoundId(round.id) }
     }
 
-    // Extract suggested club from recommendation text
     const clubMatch = recommendation.match(/Club:\s*([^\n]+)/)
     const suggestedClub = clubMatch ? clubMatch[1].trim() : null
 
-    await supabase.from('shot_history').insert({
+    const newShot = {
       user_id: user.id,
       round_id: roundId,
       hole_number: selectedHole ? parseInt(selectedHole) : null,
@@ -172,17 +166,16 @@ export default function Home() {
       suggestion_rating: rating || null,
       outcome: outcome || null,
       conditions_noted: transcript,
-    })
+    }
+    await supabase.from('shot_history').insert(newShot)
 
+    setShotHistory(prev => [newShot, ...prev].slice(0, 30))
     setFeedbackSaved(true)
   }
 
   const handleMicToggle = () => {
-    if (isListening) {
-      stopListening()
-    } else {
-      startListening()
-    }
+    if (isListening) stopListening()
+    else startListening()
   }
 
   return (
@@ -190,6 +183,34 @@ export default function Home() {
       <div className="home-header">
         <h1 className="home-title">⛳ Golf Strategy AI</h1>
         <p className="home-subtitle">Your AI caddie</p>
+      </div>
+
+      {/* Weather bar */}
+      <div className="weather-bar">
+        {weatherLoading && <span className="weather-loading">Getting weather…</span>}
+        {weather && !weatherLoading && (
+          <>
+            <span className="weather-temp">{weather.temp}°F</span>
+            <span className="weather-divider">·</span>
+            <span className="weather-wind">
+              {weather.wind_speed} mph {windDir(weather.wind_deg)}
+              {weather.wind_gust ? ` (gusts ${weather.wind_gust})` : ''}
+            </span>
+            <span className="weather-divider">·</span>
+            <span className="weather-condition">{weather.condition}</span>
+            {weather.location && (
+              <span className="weather-location">{weather.location}</span>
+            )}
+            <button className="weather-refresh" onClick={fetchWeather} title="Refresh weather">
+              ↻
+            </button>
+          </>
+        )}
+        {weatherError && !weatherLoading && (
+          <button className="weather-retry" onClick={fetchWeather}>
+            📍 Get weather
+          </button>
+        )}
       </div>
 
       {/* Course & Hole selectors */}

@@ -4,7 +4,43 @@
 
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
 
-function buildSystemPrompt(playerProfile, clubProfiles) {
+const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']
+function windDir(deg) {
+  return WIND_DIRS[Math.round(deg / 22.5) % 16]
+}
+
+function buildShotHistorySection(shotHistory) {
+  if (!shotHistory || shotHistory.length === 0) return ''
+
+  const byClub = {}
+  for (const shot of shotHistory) {
+    const club = shot.club_used || shot.club_suggested
+    if (!club) continue
+    if (!byClub[club]) byClub[club] = { count: 0, ratings: [], outcomes: [] }
+    byClub[club].count++
+    if (shot.suggestion_rating) byClub[club].ratings.push(shot.suggestion_rating)
+    if (shot.outcome) byClub[club].outcomes.push(shot.outcome)
+  }
+
+  if (Object.keys(byClub).length === 0) return ''
+
+  const lines = Object.entries(byClub)
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([club, d]) => {
+      const avg = d.ratings.length
+        ? (d.ratings.reduce((s, r) => s + r, 0) / d.ratings.length).toFixed(1) + '★'
+        : 'unrated'
+      const recent = d.outcomes.slice(-3).join('; ')
+      return `${club}: ${d.count} shots, ${avg}${recent ? ` — "${recent}"` : ''}`
+    })
+
+  return `
+
+SHOT HISTORY (recent data — spot miss patterns and calibrate confidence per club):
+${lines.join('\n')}`
+}
+
+function buildSystemPrompt(playerProfile, clubProfiles, shotHistory) {
   const clubList = clubProfiles && clubProfiles.length > 0
     ? clubProfiles.map(c => `${c.club_name}: ${c.carry_distance} yards | miss: ${c.miss_tendency || 'unknown'}`).join('\n')
     : 'No club distances entered yet. Ask player to set up their profile.'
@@ -17,7 +53,7 @@ General tendency: ${playerProfile?.general_tendency || 'none noted'}
 Handicap: ${playerProfile?.handicap ?? 'unknown'}
 
 CLUB DISTANCES (carry yards):
-${clubList}
+${clubList}${buildShotHistorySection(shotHistory)}
 
 RESPONSE FORMAT:
 Always respond in this exact structure:
@@ -35,35 +71,38 @@ Aggressive play: [Club + where to aim + what you're going for]
 Avoid: [What not to do and why, based on miss tendencies and hazards]
 
 🌦️ CONDITIONS NOTED
-[Briefly confirm what conditions you factored in]
+[Briefly confirm what conditions you factored in, including wind and temperature if provided]
 
 RULES:
 - Be decisive. Give a clear recommendation, not 'it depends'
 - Factor in miss tendencies when hazards are mentioned
+- If shot history shows a club is unreliable (low rating or repeated bad outcomes), factor that into your recommendation — suggest stepping up or down a club if appropriate
+- If wind is provided, adjust carry distances accordingly (headwind: reduce distance, tailwind: add distance)
 - If they say they are hitting it farther or shorter today, adjust distances accordingly
 - Keep total response under 150 words
-- Never ask clarifying questions. Work with what you are given.
-
-FUTURE FEATURES (not yet active, ignore for now):
-- Weather API integration pulling real wind and temperature automatically
-- Shot history learning from recent round data
-- Golf course API for automatic hole layout data
-- Post-round feedback and outcome tracking`
+- Never ask clarifying questions. Work with what you are given.`
 }
 
-function buildUserMessage(situationText, courseHole) {
+function buildUserMessage(situationText, courseHole, weather) {
   const courseContext = courseHole
-    ? `
-COURSE CONTEXT:
+    ? `COURSE CONTEXT:
 Hole ${courseHole.hole_number} | Par ${courseHole.par}
 Yardages: Black ${courseHole.yardage_black} | Blue ${courseHole.yardage_blue} | White ${courseHole.yardage_white}
 Hazards: ${courseHole.hazards || 'none noted'}
 Green notes: ${courseHole.green_notes || 'none'}
-Personal notes: ${courseHole.personal_notes || 'none'}
-`
+Personal notes: ${courseHole.personal_notes || 'none'}`
     : 'No course data loaded.'
 
-  return `${courseContext}
+  const weatherContext = weather
+    ? `
+
+CURRENT CONDITIONS:
+Temperature: ${weather.temp}°F (feels like ${weather.feels_like}°F)
+Wind: ${weather.wind_speed} mph from the ${windDir(weather.wind_deg)}${weather.wind_gust ? `, gusting ${weather.wind_gust} mph` : ''}
+Sky: ${weather.condition}`
+    : ''
+
+  return `${courseContext}${weatherContext}
 
 PLAYER'S SITUATION:
 ${situationText}`
@@ -159,7 +198,7 @@ If there is no scorecard visible in this image: {"error": "No scorecard detected
   return parsed
 }
 
-export async function getClubRecommendation(situationText, playerProfile, clubProfiles, courseHole) {
+export async function getClubRecommendation(situationText, playerProfile, clubProfiles, courseHole, shotHistory, weather) {
   if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_anthropic_api_key') {
     throw new Error('Anthropic API key not configured. Add VITE_ANTHROPIC_API_KEY to your .env file.')
   }
@@ -175,11 +214,11 @@ export async function getClubRecommendation(situationText, playerProfile, clubPr
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
-      system: buildSystemPrompt(playerProfile, clubProfiles),
+      system: buildSystemPrompt(playerProfile, clubProfiles, shotHistory),
       messages: [
         {
           role: 'user',
-          content: buildUserMessage(situationText, courseHole),
+          content: buildUserMessage(situationText, courseHole, weather),
         },
       ],
     }),
