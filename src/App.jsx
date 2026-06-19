@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
+import { supabase } from './lib/supabase'
 import Home from './pages/Home'
 import Profile from './pages/Profile'
 import CourseSetup from './pages/CourseSetup'
@@ -29,6 +31,20 @@ function BottomNav() {
 }
 
 export default function App() {
+  const [authReady, setAuthReady] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setAuthReady(true)
+      } else {
+        supabase.auth.signInAnonymously().then(() => setAuthReady(true))
+      }
+    })
+  }, [])
+
+  if (!authReady) return null
+
   return (
     <BrowserRouter>
       <div className="app-layout">
