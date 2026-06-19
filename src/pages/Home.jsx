@@ -246,7 +246,15 @@ export default function Home() {
       {/* Course hole info badge */}
       {courseHole && (
         <div className="hole-info-badge">
-          <span>Hole {courseHole.hole_number} · Par {courseHole.par}</span>
+          <span>
+            Hole {courseHole.hole_number} · Par {courseHole.par}
+            {(() => {
+              const yards = [courseHole.yardage_black, courseHole.yardage_blue, courseHole.yardage_white]
+                .filter(Boolean)
+                .filter((v, i, a) => a.indexOf(v) === i)
+              return yards.length > 0 ? ` · ${yards.join(' / ')} yds` : ''
+            })()}
+          </span>
           {courseHole.hazards && <span className="hole-hazard">⚠ {courseHole.hazards}</span>}
         </div>
       )}
