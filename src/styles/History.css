@@ -156,6 +156,68 @@
   font-size: 14px;
 }
 
+/* Round action bar */
+.round-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--green-700);
+  flex-wrap: wrap;
+}
+
+.round-action-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delete-confirm-label {
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+/* Edit mode */
+.round-editing {
+  border-color: var(--green-400);
+}
+
+.round-edit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.round-edit-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green-300);
+}
+
+.edit-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.edit-row .form-group {
+  margin-bottom: 12px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;
