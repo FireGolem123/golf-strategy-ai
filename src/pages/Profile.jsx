@@ -12,6 +12,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [handicapCalc, setHandicapCalc] = useState(null)
+  const [handicapExpanded, setHandicapExpanded] = useState(false)
+  const [applyingHandicap, setApplyingHandicap] = useState(false)
 
   const [profile, setProfile] = useState({
     ball_flight: 'straight',
@@ -62,7 +65,67 @@ export default function Profile() {
       }))
     }
 
+    await loadHandicap(user.id)
     setLoading(false)
+  }
+
+  async function loadHandicap(userId) {
+    const { data: rounds } = await supabase
+      .from('rounds')
+      .select('id, date, course_name, score, course_rating, slope_rating')
+      .eq('user_id', userId)
+      .not('score', 'is', null)
+      .order('date', { ascending: false })
+      .limit(20)
+
+    const MIN_ROUNDS = 5
+
+    if (!rounds || rounds.length === 0) {
+      setHandicapCalc({ index: null, qualifying: [], best8: [], skipped: 0, minRounds: MIN_ROUNDS })
+      return
+    }
+
+    const qualifying = []
+    let skipped = 0
+    rounds.forEach(r => {
+      if (r.course_rating != null && r.slope_rating != null) {
+        qualifying.push({
+          ...r,
+          differential: Math.round(((r.score - r.course_rating) * 113 / r.slope_rating) * 10) / 10,
+        })
+      } else {
+        skipped++
+      }
+    })
+
+    const sorted = [...qualifying].sort((a, b) => a.differential - b.differential)
+
+    if (sorted.length < MIN_ROUNDS) {
+      setHandicapCalc({ index: null, qualifying: sorted, best8: [], skipped, minRounds: MIN_ROUNDS })
+      return
+    }
+
+    const best8 = sorted.slice(0, Math.min(8, sorted.length))
+    const avg = best8.reduce((sum, r) => sum + r.differential, 0) / best8.length
+    const index = Math.round(avg * 10) / 10
+
+    setHandicapCalc({ index, qualifying: sorted, best8, skipped, minRounds: MIN_ROUNDS })
+  }
+
+  async function applyCalculatedHandicap() {
+    if (!handicapCalc?.index) return
+    setApplyingHandicap(true)
+    const rounded = Math.round(handicapCalc.index)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from('player_profile').upsert({
+        user_id: user.id,
+        handicap: rounded,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      setProfile(p => ({ ...p, handicap: String(rounded) }))
+    }
+    setApplyingHandicap(false)
   }
 
   function updateClub(index, field, value) {
@@ -205,6 +268,71 @@ export default function Profile() {
           </div>
         ))}
       </div>
+
+      {handicapCalc !== null && (
+        <div className="card">
+          <h2 className="section-title">Handicap Calculator</h2>
+          {handicapCalc.index !== null ? (
+            <>
+              <div className="handicap-index-display">
+                <span className="handicap-index-num">{handicapCalc.index}</span>
+                <span className="handicap-index-label">Handicap Index (USGA)</span>
+              </div>
+              <p className="text-muted" style={{ fontSize: 13, marginBottom: 12 }}>
+                Best {handicapCalc.best8.length} of {handicapCalc.qualifying.length} qualifying round{handicapCalc.qualifying.length !== 1 ? 's' : ''}
+                {handicapCalc.skipped > 0 ? ` · ${handicapCalc.skipped} skipped (missing rating/slope)` : ''}.
+              </p>
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', marginBottom: 8 }}
+                onClick={applyCalculatedHandicap}
+                disabled={applyingHandicap}
+              >
+                {applyingHandicap ? 'Saving…' : `Use ${handicapCalc.index} as my handicap`}
+              </button>
+              <p className="text-muted" style={{ fontSize: 11, marginBottom: 14 }}>
+                Stored as {Math.round(handicapCalc.index)} (rounded to integer) in your profile.
+              </p>
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', fontSize: 13 }}
+                onClick={() => setHandicapExpanded(e => !e)}
+              >
+                {handicapExpanded ? '▲ Hide rounds used' : '▼ Show rounds used'}
+              </button>
+              {handicapExpanded && (
+                <div className="differential-list">
+                  {handicapCalc.best8.map(r => (
+                    <div key={r.id} className="differential-row">
+                      <span className="diff-course">{r.course_name || 'Unknown'}</span>
+                      <span className="diff-date text-muted">{r.date}</span>
+                      <span className="diff-score text-muted">{r.score}</span>
+                      <span className={`diff-val ${r.differential <= 0 ? 'text-gold' : ''}`}>
+                        {r.differential > 0 ? '+' : ''}{r.differential}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-muted" style={{ marginBottom: handicapCalc.skipped > 0 ? 10 : 0 }}>
+                Need at least {handicapCalc.minRounds} qualifying rounds (with course rating &amp; slope) to calculate.
+                {handicapCalc.qualifying.length > 0
+                  ? ` You have ${handicapCalc.qualifying.length} so far.`
+                  : ' No qualifying rounds yet — start tracking rounds in the Score tab.'}
+              </p>
+              {handicapCalc.skipped > 0 && (
+                <p className="text-muted">
+                  {handicapCalc.skipped} round{handicapCalc.skipped !== 1 ? 's' : ''} skipped — missing course rating or slope.
+                  Add these in the Score tab when recording rounds.
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
         {saving ? 'Saving…' : 'Save Profile'}

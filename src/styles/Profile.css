@@ -51,6 +51,68 @@
   font-size: 13px;
 }
 
+/* Handicap calculator */
+.handicap-index-display {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.handicap-index-num {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--green-300);
+  line-height: 1;
+}
+
+.handicap-index-label {
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+.differential-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.differential-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 44px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--green-900);
+  border: 1px solid var(--green-700);
+  border-radius: 8px;
+}
+
+.diff-course {
+  font-size: 13px;
+  color: var(--white);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-date {
+  font-size: 12px;
+}
+
+.diff-score {
+  font-size: 13px;
+}
+
+.diff-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--white);
+  text-align: right;
+}
+
 .success-banner {
   background: rgba(76, 175, 119, 0.15);
   border: 1px solid var(--green-400);

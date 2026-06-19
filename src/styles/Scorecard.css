@@ -1,0 +1,364 @@
+.scorecard-page .card {
+  margin-bottom: 12px;
+}
+
+.sc-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green-300);
+  margin-bottom: 14px;
+}
+
+/* ── Setup form layout ───────────────────────────────────────── */
+.sc-form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.sc-form-col {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Summary bar ─────────────────────────────────────────────── */
+.summary-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  margin-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.summary-bar::-webkit-scrollbar { display: none; }
+
+.summary-stat {
+  flex-shrink: 0;
+  background: var(--green-800);
+  border: 1px solid var(--green-600);
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-align: center;
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summary-num {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--white);
+  display: block;
+}
+
+.summary-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+}
+
+/* vs-par color classes — also used in hole buttons */
+.vs-par-over  { color: var(--red); }
+.vs-par-under { color: var(--green-300); }
+.vs-par-even  { color: var(--gold); }
+
+/* ── Hole grid ───────────────────────────────────────────────── */
+.hole-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.hole-btn {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--green-900);
+  border: 1px solid var(--green-700);
+  color: var(--gray-400);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transition: border-color 0.1s, background 0.1s;
+  padding: 4px 0;
+}
+
+.hole-btn:active {
+  transform: scale(0.94);
+}
+
+.hole-btn.scored {
+  background: var(--green-800);
+  border-color: var(--green-600);
+  color: var(--white);
+}
+
+.hole-btn.active {
+  border-color: var(--green-300);
+  background: var(--green-700);
+}
+
+.hole-btn-num {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.hole-btn-score {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hole-btn-score.birdie { color: var(--green-300); }
+.hole-btn-score.even   { color: var(--gold); }
+.hole-btn-score.bogey  { color: #f57c00; }
+.hole-btn-score.double { color: var(--red); }
+
+.hole-btn.needs-review {
+  border-color: #f57c00;
+  background: rgba(245, 124, 0, 0.12);
+}
+
+.hole-btn-review {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f57c00;
+  line-height: 1;
+}
+
+/* ── Hole entry form ─────────────────────────────────────────── */
+.hole-entry {
+  /* inherits .card */
+}
+
+.hole-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.hole-entry-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green-300);
+}
+
+.entry-field {
+  margin-bottom: 14px;
+}
+
+.entry-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-400);
+  margin-bottom: 6px;
+}
+
+.entry-row {
+  display: flex;
+  gap: 12px;
+}
+
+.entry-row .entry-field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Stepper ─────────────────────────────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: center;
+  background: var(--green-900);
+  border: 1px solid var(--green-600);
+  border-radius: 10px;
+  overflow: hidden;
+  height: 48px;
+}
+
+.stepper-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  font-weight: 300;
+  background: transparent;
+  border: none;
+  color: var(--green-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+
+.stepper-btn:active {
+  background: var(--green-700);
+}
+
+.stepper-btn:disabled {
+  color: var(--green-700);
+  cursor: not-allowed;
+}
+
+.stepper-val {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+/* ── Toggle ──────────────────────────────────────────────────── */
+.toggle-group {
+  display: flex;
+  gap: 6px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--green-600);
+  background: var(--green-900);
+  color: var(--gray-400);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-align: center;
+}
+
+.toggle-btn.active {
+  background: var(--green-600);
+  border-color: var(--green-400);
+  color: var(--white);
+}
+
+.toggle-btn:active {
+  transform: scale(0.96);
+}
+
+/* ── Photo import ────────────────────────────────────────────── */
+.import-error {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(211, 47, 47, 0.12);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  color: #ef9a9a;
+  font-size: 13px;
+}
+
+.import-review-note {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: rgba(245, 124, 0, 0.12);
+  border: 1px solid #f57c00;
+  border-radius: 8px;
+  color: #ffb74d;
+  font-size: 13px;
+}
+
+.import-preview {
+  /* inherits .card */
+}
+
+.preview-row {
+  font-size: 14px;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+
+.preview-key {
+  font-weight: 600;
+  color: var(--gray-400);
+  margin-right: 4px;
+}
+
+.preview-holes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.preview-hole-row {
+  background: var(--green-900);
+  border: 1px solid var(--green-700);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preview-hole-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+}
+
+.preview-hole-par {
+  font-size: 11px;
+}
+
+.preview-hole-score {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+}
+
+.preview-hole-row.preview-needs-review {
+  border-color: var(--red);
+  background: rgba(211, 47, 47, 0.1);
+}
+
+.preview-hole-row.preview-needs-review .preview-hole-score {
+  color: #ef9a9a;
+}
+
+.preview-hole-row.preview-low-confidence {
+  border-color: #f57c00;
+  background: rgba(245, 124, 0, 0.1);
+}
+
+.preview-hole-row.preview-low-confidence .preview-hole-score {
+  color: #ffb74d;
+}
+
+/* ── Round complete ──────────────────────────────────────────── */
+.complete-card {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.complete-score {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.complete-vs-par {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.complete-vs-par.over  { color: var(--red); }
+.complete-vs-par.under { color: var(--green-300); }
+.complete-vs-par.even  { color: var(--gold); }

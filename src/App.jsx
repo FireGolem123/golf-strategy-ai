@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import Profile from './pages/Profile'
 import CourseSetup from './pages/CourseSetup'
 import History from './pages/History'
+import Scorecard from './pages/Scorecard'
 import './styles/App.css'
 
 function BottomNav() {
@@ -21,6 +22,10 @@ function BottomNav() {
       <NavLink to="/course-setup" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
         <span className="nav-icon">🗺️</span>
         <span className="nav-label">Course</span>
+      </NavLink>
+      <NavLink to="/scorecard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+        <span className="nav-icon">📝</span>
+        <span className="nav-label">Score</span>
       </NavLink>
       <NavLink to="/history" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
         <span className="nav-icon">📋</span>
@@ -53,6 +58,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/course-setup" element={<CourseSetup />} />
+            <Route path="/scorecard" element={<Scorecard />} />
             <Route path="/history" element={<History />} />
           </Routes>
         </main>
