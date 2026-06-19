@@ -31,9 +31,11 @@ calculator added in session 2.
 Schema files:
 - `SUPABASE_SETUP.sql` — run first (base tables)
 - `SUPABASE_SCORE_TRACKING.sql` — run second (extends rounds table, adds hole_scores)
+- `SUPABASE_COURSE_TEES.sql` — run third (adds course_tees table for rating/slope per tee, populated by GolfCourseAPI import)
 
 ## Key file locations
 
+- `src/lib/golfCourseApi.js` — `searchCourses(query)` and `getCourseById(id)`. Auth header is `Key <token>` (not Bearer). Free tier = 50 req/day.
 - `src/lib/claude.js` — two exported functions:
   - `getClubRecommendation()` — caddie system prompt + structured response
   - `extractScorecardFromImage(base64, mediaType, playerName)` — vision call, returns JSON with course/holes. playerName tells Claude which row to read on multi-player cards.
@@ -67,15 +69,14 @@ injection. Has a "FUTURE FEATURES" section already stubbed in.
 
 ## Next session — what to add (priority order)
 
-1. **Scorecard UX restructure** — split Scorecard into two distinct flows:
+1. ~~**Course data integration**~~ ✅ — done (GolfCourseAPI search/import in CourseSetup.jsx)
+
+2. **Scorecard UX restructure** — split Scorecard into two distinct flows:
    - "Track live round" — current hole-by-hole scoring behavior (no change)
    - "Log completed round" — enter a past round: photo import OR manual total score OR full
      hole-by-hole. Saves immediately as complete.
    - Post-round editing: from the mode-picker screen, show recent rounds so you can tap one
      and add/edit hole-by-hole detail after the fact.
-
-2. **Real Cedarbrook hole-by-hole data** — either manually fill in Course Setup tab, or revisit
-   the Golf Course API / Golfbert API option for auto-populating yardages and hole info.
 
 3. **GPS** — browser Geolocation API to auto-detect which course/hole you're on instead of
    manually selecting. Could also auto-calculate distance-to-pin if green coordinates are stored

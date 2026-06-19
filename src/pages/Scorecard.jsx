@@ -236,23 +236,36 @@ export default function Scorecard() {
   }
 
   async function loadCoursePars(courseName) {
-    const { data } = await supabase
-      .from('course_holes')
-      .select('hole_number, par')
-      .eq('course_name', courseName)
-    if (!data) return
-    setHoleScores(prev => {
-      const updated = { ...prev }
-      data.forEach(({ hole_number, par }) => {
-        updated[hole_number] = {
-          bunker_shots: 0, chip_shots: 0, penalties: 0,
-          ...updated[hole_number],
-          par: updated[hole_number]?.par ?? par,
-        }
+    const [{ data: holes }, { data: tee }] = await Promise.all([
+      supabase.from('course_holes').select('hole_number, par').eq('course_name', courseName),
+      supabase.from('course_tees').select('tee_name, course_rating, slope_rating')
+        .eq('course_name', courseName).limit(1).maybeSingle(),
+    ])
+
+    if (holes) {
+      setHoleScores(prev => {
+        const updated = { ...prev }
+        holes.forEach(({ hole_number, par }) => {
+          updated[hole_number] = {
+            bunker_shots: 0, chip_shots: 0, penalties: 0,
+            ...updated[hole_number],
+            par: updated[hole_number]?.par ?? par,
+          }
+        })
+        holeScoresRef.current = updated
+        return updated
       })
-      holeScoresRef.current = updated
-      return updated
-    })
+    }
+
+    // Pre-fill rating/slope from imported tee data only if those fields are currently blank
+    if (tee) {
+      setRoundForm(prev => ({
+        ...prev,
+        tee_name: prev.tee_name || tee.tee_name || '',
+        course_rating: prev.course_rating !== '' ? prev.course_rating : (tee.course_rating ?? ''),
+        slope_rating: prev.slope_rating !== '' ? prev.slope_rating : (tee.slope_rating ?? ''),
+      }))
+    }
   }
 
   async function startRound(prefilledScores = null, form = null) {
