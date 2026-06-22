@@ -21,6 +21,7 @@ Session 4: real auth (email + Google OAuth), visual consistency pass (SVG nav ic
 - GolfCourseAPI course search and import (Course tab)
 - Pages: Caddie (/), Profile (/profile), Course (/course-setup), Score (/scorecard), History (/history)
 - Pushed to GitHub: FireGolem123/golf-strategy-ai
+- Deployed to Vercel: https://golf-caddie-ai.vercel.app (auto-deploys on push to main)
 
 ## Database tables
 
@@ -111,7 +112,7 @@ Schema files (run in order in Supabase SQL editor):
 **Sign-up path (best case, no migration needed):**
 - If the user still has an active anonymous session when they sign up, `Auth.jsx` calls:
   - Email/password signup: `supabase.auth.updateUser({ email, password })` — promotes the anonymous user in-place. user_id stays the same, all existing data is preserved automatically.
-  - Google signup: `supabase.auth.linkIdentity({ provider: 'google' })` — links Google OAuth to the anonymous account. Same user_id preserved.
+  - Google signup: uses `signInWithOAuth` (new user_id), then migration RPC reassigns data afterward.
 
 **Sign-in path (cross-device, requires DB migration):**
 - If the user signs in to an existing real account on a browser that had anonymous data, App.jsx stores the anonymous user_id (`golf_anon_uid` in localStorage) on load.
@@ -171,13 +172,10 @@ See checklist below under "Supabase dashboard config needed".
 1. Supabase Dashboard → Authentication → URL Configuration
 2. Add to **Redirect URLs**:
    - `http://localhost:5173` (dev)
-   - Your production URL when deployed (e.g. `https://your-app.vercel.app`)
+   - `https://golf-caddie-ai.vercel.app` (production — already added)
+3. Set **Site URL** to `http://localhost:5173` for local dev (change to production URL when done with local testing)
 
-### Step 4 — Enable "Link identity" (required for anonymous → Google promotion)
-1. Supabase Dashboard → Authentication → Settings (or Sign In Providers)
-2. Enable **"Allow users to link multiple OAuth accounts to a single user"** (sometimes labeled "Link identity")
-
-### Step 5 — Email confirmation settings
+### Step 4 — Email confirmation settings
 - Default: email confirmation is ON (users get a confirmation email on sign-up). Leave this on.
 - If you want to skip confirmation for testing: Authentication → Settings → uncheck "Enable email confirmations" (not recommended for production)
 
@@ -185,8 +183,7 @@ See checklist below under "Supabase dashboard config needed".
 
 - API keys live in the browser bundle — fine for solo personal use. If ever shared publicly, move Claude/OWM/GolfCourseAPI calls to Vercel serverless functions so keys stay server-side.
 - GolfCourseAPI free tier is 50 requests/day — search + detail = 2 requests per course import.
-- OpenWeatherMap key newly created — may take up to 2 hours to activate on a new account.
-- The `migrate_anonymous_data` RPC must be created in Supabase for cross-device migration to work. Until then, migration silently fails (non-blocking) and a notice is shown.
+- The `migrate_anonymous_data` RPC must be created in Supabase for cross-device data migration to work. Until then, migration silently fails (non-blocking) and a notice is shown to the user.
 
 ## Cost tracking
 
