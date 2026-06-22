@@ -45,8 +45,12 @@
 }
 
 .nav-icon {
-  font-size: 20px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .nav-label {
@@ -192,4 +196,61 @@
   border: none;
   border-top: 1px solid var(--green-700);
   margin: 16px 0;
+}
+
+/* Migration notice banner */
+.migration-notice {
+  position: relative;
+  background: rgba(201, 168, 76, 0.12);
+  border-bottom: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 13px;
+  padding: 10px 40px 10px 16px;
+  text-align: center;
+  line-height: 1.4;
+  z-index: 50;
+}
+
+.migration-notice-dismiss {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--gold);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ── Mobile polish ──────────────────────────────────────────────── */
+
+/* Ensure inputs never overflow their container on narrow viewports */
+.form-input,
+.form-select,
+.form-textarea {
+  min-width: 0;
+}
+
+/* Consistent card horizontal padding — prevents content hugging the card edge */
+.card {
+  padding: 16px;
+}
+
+/* Buttons full-width by default on mobile feel consistent */
+.btn-primary {
+  width: 100%;
+}
+
+/* Success banners */
+.success-banner {
+  padding: 10px 12px;
+  background: rgba(76, 175, 119, 0.12);
+  border: 1px solid var(--green-400);
+  border-radius: 8px;
+  color: var(--green-300);
+  font-size: 13px;
+  text-align: center;
 }

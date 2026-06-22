@@ -13,11 +13,27 @@
 .sc-form-row {
   display: flex;
   gap: 10px;
+  align-items: stretch;
 }
 
 .sc-form-col {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stretch the input to fill the column so both sides are equal height */
+.sc-form-col .form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-bottom: 16px;
+}
+
+.sc-form-col .form-input {
+  flex: 1;
+  min-height: 44px;
 }
 
 /* ── Summary bar ─────────────────────────────────────────────── */
@@ -227,8 +243,10 @@
 }
 
 .toggle-btn {
-  flex: 1;
-  padding: 10px 8px;
+  /* flex: 1 1 0 ignores content size so all buttons are strictly equal width */
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 11px 8px;
   border-radius: 8px;
   border: 1px solid var(--green-600);
   background: var(--green-900);
@@ -237,8 +255,9 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
   text-align: center;
+  white-space: nowrap;
 }
 
 .toggle-btn.active {

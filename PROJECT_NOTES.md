@@ -1,18 +1,20 @@
 # Golf Strategy AI — Project Notes
 
-Last updated: June 19, 2026
+Last updated: June 22, 2026
 
 ## Status: All core features live ✅
 
 Session 1: core caddie loop (voice → Claude → recommendation).
 Session 2: score tracking, photo import, handicap calculator.
 Session 3: weather, shot history feedback loop, GolfCourseAPI import, History edit/delete, caddie UX polish.
+Session 4: real auth (email + Google OAuth), visual consistency pass (SVG nav icons, Scorecard form alignment, toggle equal-width).
 
 ## What's built
 
 - React + Vite frontend, mobile-first dark green UI
 - Supabase backend (7 tables — see below)
-- Anonymous auth (silent sign-in, no login screen)
+- Real auth: email/password + Google OAuth (Supabase Auth). Anonymous auth removed.
+- Auth page (`src/pages/Auth.jsx`): Sign In / Sign Up tabs, Google OAuth button, forgot password, email confirmation state.
 - Web Speech API voice input
 - Claude Haiku 4.5 for caddie recommendations and scorecard photo OCR
 - OpenWeatherMap weather bar (auto-fetches via browser GPS on Caddie tab load)
@@ -102,12 +104,89 @@ Schema files (run in order in Supabase SQL editor):
 
 3. **Stats / trends page** — scoring average, GIR%, FIR%, putts per round charted over time
 
+## Auth implementation details
+
+### How anonymous → real account migration works
+
+**Sign-up path (best case, no migration needed):**
+- If the user still has an active anonymous session when they sign up, `Auth.jsx` calls:
+  - Email/password signup: `supabase.auth.updateUser({ email, password })` — promotes the anonymous user in-place. user_id stays the same, all existing data is preserved automatically.
+  - Google signup: `supabase.auth.linkIdentity({ provider: 'google' })` — links Google OAuth to the anonymous account. Same user_id preserved.
+
+**Sign-in path (cross-device, requires DB migration):**
+- If the user signs in to an existing real account on a browser that had anonymous data, App.jsx stores the anonymous user_id (`golf_anon_uid` in localStorage) on load.
+- After `SIGNED_IN` fires with a different user_id, `App.jsx` calls the `migrate_anonymous_data` RPC to reassign rows.
+- If the RPC fails (not created yet), a subtle notice is shown; sign-in still succeeds.
+- Requires creating `migrate_anonymous_data(anon_user_id uuid)` in Supabase — see SQL below.
+
+### Migration RPC SQL (run once in Supabase SQL editor)
+
+```sql
+CREATE OR REPLACE FUNCTION migrate_anonymous_data(anon_user_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM auth.users WHERE id = anon_user_id AND is_anonymous = true
+  ) THEN RETURN; END IF;
+
+  UPDATE player_profile SET user_id = auth.uid() WHERE user_id = anon_user_id;
+  UPDATE club_profiles   SET user_id = auth.uid() WHERE user_id = anon_user_id;
+  UPDATE rounds          SET user_id = auth.uid() WHERE user_id = anon_user_id;
+  UPDATE hole_scores     SET user_id = auth.uid() WHERE user_id = anon_user_id;
+  UPDATE course_holes    SET user_id = auth.uid() WHERE user_id = anon_user_id;
+  UPDATE shot_history    SET user_id = auth.uid() WHERE user_id = anon_user_id;
+END;
+$$;
+```
+
+### RLS policy status
+All existing RLS policies use `auth.uid() = user_id`. These work identically for real and anonymous sessions — no changes needed. Real accounts just have `is_anonymous = false`.
+
+### Supabase dashboard Google OAuth config
+See checklist below under "Supabase dashboard config needed".
+
+## Supabase dashboard config needed (Google OAuth)
+
+### Step 1 — Create Google Cloud OAuth credentials
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials
+2. Create Project (if needed)
+3. Click **Create Credentials** → **OAuth client ID**
+4. Application type: **Web application**
+5. Add Authorized redirect URIs:
+   - `https://<your-project-ref>.supabase.co/auth/v1/callback`
+   - Find your project ref in Supabase Dashboard → Settings → General
+6. Save — copy the **Client ID** and **Client Secret**
+
+### Step 2 — Enable Google in Supabase Auth
+1. Supabase Dashboard → Authentication → Providers → Google
+2. Toggle **Enable Google provider**
+3. Paste Client ID and Client Secret
+4. Save
+
+### Step 3 — Add redirect URL allowlist
+1. Supabase Dashboard → Authentication → URL Configuration
+2. Add to **Redirect URLs**:
+   - `http://localhost:5173` (dev)
+   - Your production URL when deployed (e.g. `https://your-app.vercel.app`)
+
+### Step 4 — Enable "Link identity" (required for anonymous → Google promotion)
+1. Supabase Dashboard → Authentication → Settings (or Sign In Providers)
+2. Enable **"Allow users to link multiple OAuth accounts to a single user"** (sometimes labeled "Link identity")
+
+### Step 5 — Email confirmation settings
+- Default: email confirmation is ON (users get a confirmation email on sign-up). Leave this on.
+- If you want to skip confirmation for testing: Authentication → Settings → uncheck "Enable email confirmations" (not recommended for production)
+
 ## Known things to keep an eye on
 
 - API keys live in the browser bundle — fine for solo personal use. If ever shared publicly, move Claude/OWM/GolfCourseAPI calls to Vercel serverless functions so keys stay server-side.
-- Anonymous Supabase auth ties data to the browser session — clearing browser data loses everything. Worth revisiting if this becomes a multi-device app.
 - GolfCourseAPI free tier is 50 requests/day — search + detail = 2 requests per course import.
 - OpenWeatherMap key newly created — may take up to 2 hours to activate on a new account.
+- The `migrate_anonymous_data` RPC must be created in Supabase for cross-device migration to work. Until then, migration silently fails (non-blocking) and a notice is shown.
 
 ## Cost tracking
 

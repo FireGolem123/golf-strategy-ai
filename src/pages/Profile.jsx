@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import '../styles/Profile.css'
 
@@ -9,6 +10,7 @@ const DEFAULT_CLUBS = [
 ]
 
 export default function Profile() {
+  const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -339,6 +341,27 @@ export default function Profile() {
       </button>
 
       {saved && <div className="success-banner" style={{ marginTop: 12 }}>Profile saved ✓</div>}
+
+      <div style={{ marginTop: 32, paddingBottom: 8, textAlign: 'center' }}>
+        <button
+          type="button"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--gray-600)',
+            fontSize: 13,
+            cursor: 'pointer',
+            fontFamily: 'var(--font)',
+            padding: '6px 12px',
+          }}
+          onClick={async () => {
+            await supabase.auth.signOut()
+            navigate('/auth')
+          }}
+        >
+          Sign out
+        </button>
+      </div>
     </div>
   )
 }
