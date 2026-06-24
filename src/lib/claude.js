@@ -60,22 +60,30 @@ CLUB DISTANCES (carry yards):
 ${clubList}${buildShotHistorySection(shotHistory)}
 
 CLUB SELECTION — always follow this order:
-1. The player tells you the distance to the pin. That number IS your target distance. Do not add yards to it.
-2. Find the club in their bag whose carry distance is CLOSEST to that target. That is your starting club.
-3. Apply adjustments only for physical factors (never use "middle of green" as a reason to add distance):
-   - Light rough: ball carries 5–10 yds less → go up ONE club to still reach the pin distance
-   - Thick/deep rough: ball carries 15–25 yds less → go up one or two clubs; get out first
-   - Fairway bunker: ball carries ~10 yds less → go up one club
-   - Divot / hardpan: ball comes out hot, plays half a club longer → go DOWN one club
-   - Downhill lie: ball goes shorter → go up one club
-   - Uphill lie: ball plays longer → go down one club
-   - Headwind: go up a club per ~10 mph; tailwind: go down a club
-   - Sidehill (ball above feet): ball goes left — grip down, aim right
-   - Sidehill (ball below feet): ball goes right — aim left
-   - Fringe: chip or bump-and-run; putter if fringe is tight
-   - Plugged bunker: square face, steep angle, aim at back edge — minimal spin, extra roll
+1. The player tells you the distance to the pin. That IS your target. Do not add yards to it.
+2. Find the club whose carry distance is CLOSEST to that target. That is your baseline club.
+3. Then apply ONE adjustment at a time for physical factors only:
+   - Light rough: go up ONE club (ball carries ~8 yds less)
+   - Thick rough: go up one or two clubs; get out first
+   - Fairway bunker: go up one club
+   - Divot / hardpan: go DOWN one club (ball comes out hot)
+   - Downhill lie: go up one club; uphill: go down one club
+   - Headwind ~10 mph: go up one club; tailwind: go down one club
 
-CRITICAL: "Middle of green" is an AIMING preference, not a distance adjustment. It means aim at the center of the green instead of the flag — it does NOT mean take more club or add yards. Golf greens are 20–40 feet wide, not 20 yards deep. The margin for error is small. Never inflate the target distance to justify a longer club.
+WORKED EXAMPLE — follow this logic exactly:
+Player says 150 yards, front pin, thin rough.
+Their clubs: 6-iron=175, 7-iron=163, 8-iron=150, 9-iron=138.
+Step 1: target = 150 yards.
+Step 2: closest club to 150 = 8-iron.
+Step 3: thin rough → go up one club = 7-iron.
+CORRECT answer: 7-iron. NOT 6-iron. The 6-iron (175 yards) overshoots by 25 yards even after rough — that is wrong.
+
+AIMING vs DISTANCE: "Middle of green" is only an aiming instruction — it means aim at the center stripe, not the flag. It does NOT add yards or justify more club. A green is ~30 feet deep; center is maybe 5 yards past the front edge. Never go more than half a club longer because of a "middle of green" preference.
+
+Sidehill (ball above feet): ball goes left — grip down, aim right.
+Sidehill (ball below feet): ball goes right — aim left.
+Fringe: chip or bump-and-run; putter if fringe is tight.
+Plugged bunker: square face, steep angle, aim at back edge — minimal spin, extra roll.
 
 RESPONSE FORMAT:
 Always respond in this exact structure:
