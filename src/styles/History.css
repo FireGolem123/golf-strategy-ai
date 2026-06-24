@@ -352,8 +352,10 @@
 .unlinked-select {
   flex: 1;
   font-size: 13px;
-  padding: 8px 32px 8px 10px;
+  padding: 8px 8px 8px 10px;
   min-width: 0;
+  text-align: left;
+  text-align-last: left;
 }
 
 .unlinked-assign-btn {
