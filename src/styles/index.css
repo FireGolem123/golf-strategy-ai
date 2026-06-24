@@ -27,6 +27,10 @@
 html, body {
   height: 100%;
   background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(22,56,34,0.5) 0%, transparent 55%),
+    repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(255,255,255,0.02) 18px, rgba(255,255,255,0.02) 19px),
+    repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(255,255,255,0.02) 18px, rgba(255,255,255,0.02) 19px);
   color: var(--white);
   font-family: var(--font);
   font-size: 16px;

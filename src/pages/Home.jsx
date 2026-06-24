@@ -27,14 +27,32 @@ function StarRating({ value, onChange }) {
   )
 }
 
+const SECTION_PILLS = {
+  '🏌️': { label: 'SITUATION', color: 'pill-situation' },
+  '✅': { label: 'PLAY', color: 'pill-play' },
+  '⚠️': { label: 'RISK / REWARD', color: 'pill-risk' },
+  '🌦️': { label: 'CONDITIONS', color: 'pill-conditions' },
+  '🗺️': { label: 'ROUND PLAN', color: 'pill-play' },
+  '📊': { label: 'THEMES', color: 'pill-situation' },
+  '⛳': { label: 'HOLES', color: 'pill-conditions' },
+  '🎯': { label: 'FOCUS', color: 'pill-risk' },
+}
+
 function RecommendationDisplay({ text }) {
-  const HEADER_EMOJIS = ['🏌️', '✅', '⚠️', '🌦️', '🗺️', '📊', '⛳', '🎯']
   const lines = text.split('\n')
   return (
     <div className="recommendation">
       {lines.map((line, i) => {
-        if (HEADER_EMOJIS.some(e => line.startsWith(e))) {
-          return <p key={i} className="rec-section-header">{line}</p>
+        const pill = Object.entries(SECTION_PILLS).find(([emoji]) => line.startsWith(emoji))
+        if (pill) {
+          const [emoji, { label, color }] = pill
+          const rest = line.replace(emoji, '').trim()
+          return (
+            <div key={i} className="rec-section-header">
+              <span className={`rec-pill ${color}`}>{label}</span>
+              {rest && <span className="rec-pill-text">{rest}</span>}
+            </div>
+          )
         }
         if (line.startsWith('Club:')) {
           return <p key={i} className="rec-club-line">{line}</p>
@@ -262,7 +280,7 @@ export default function Home() {
         )}
         {weatherError && !weatherLoading && (
           <button className="weather-retry" onClick={fetchWeather}>
-            📍 Get weather
+            Get weather
           </button>
         )}
       </div>
@@ -273,13 +291,23 @@ export default function Home() {
           className={`mode-btn ${caddieMode === 'hole' ? 'active' : ''}`}
           onClick={() => handleModeSwitch('hole')}
         >
-          🏌️ Hole Caddie
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <line x1="7" y1="12" x2="7" y2="4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            <polygon points="7,4.5 11.5,6.5 7,8.5" fill="currentColor"/>
+            <ellipse cx="7" cy="12.3" rx="3.2" ry="1.1" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.5"/>
+          </svg>
+          Hole Caddie
         </button>
         <button
           className={`mode-btn ${caddieMode === 'round' ? 'active' : ''}`}
           onClick={() => handleModeSwitch('round')}
         >
-          🗺️ Round Plan
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M1 3.5l4-1.5 4 1.5 4-1.5v7.5l-4 1.5-4-1.5-4 1.5V3.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+            <line x1="5" y1="2" x2="5" y2="11" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+            <line x1="9" y1="3.5" x2="9" y2="12.5" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+          </svg>
+          Round Plan
         </button>
       </div>
 
@@ -406,7 +434,16 @@ export default function Home() {
             onClick={handleSubmit}
             disabled={loading || !transcript.trim()}
           >
-            {loading ? 'Thinking…' : '⛳ Get Recommendation'}
+            {loading ? 'Thinking…' : (
+              <>
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+                  <line x1="7.5" y1="13" x2="7.5" y2="5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  <polygon points="7.5,5 12,7.2 7.5,9.4" fill="currentColor"/>
+                  <ellipse cx="7.5" cy="13.3" rx="3.5" ry="1.2" stroke="currentColor" strokeWidth="1.3" fill="none" opacity="0.6"/>
+                </svg>
+                Get Recommendation
+              </>
+            )}
           </button>
 
           {apiError && (

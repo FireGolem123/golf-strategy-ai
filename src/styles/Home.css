@@ -228,14 +228,55 @@
 }
 
 .rec-section-header {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--green-300);
-  margin-top: 12px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .rec-section-header:first-child {
   margin-top: 0;
+}
+
+.rec-pill {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.pill-situation {
+  background: rgba(94, 201, 138, 0.12);
+  color: var(--green-300);
+  border: 1px solid rgba(94, 201, 138, 0.25);
+}
+
+.pill-play {
+  background: rgba(61, 160, 102, 0.15);
+  color: #3da066;
+  border: 1px solid rgba(61, 160, 102, 0.3);
+}
+
+.pill-risk {
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--gold);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+.pill-conditions {
+  background: rgba(74, 92, 78, 0.2);
+  color: var(--gray-400);
+  border: 1px solid rgba(74, 92, 78, 0.35);
+}
+
+.rec-pill-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-200);
 }
 
 .rec-club-line {
@@ -303,7 +344,10 @@
   font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
 }
 
 .mode-btn.active {
