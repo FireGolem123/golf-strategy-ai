@@ -345,21 +345,23 @@ export default function Home() {
         )}
       </div>
 
-      {/* Hole info badge — hole mode only */}
-      {caddieMode === 'hole' && courseHole && (
-        <div className="hole-info-badge">
-          <span>
-            Hole {courseHole.hole_number} · Par {courseHole.par}
-            {(() => {
-              const yards = [courseHole.yardage_black, courseHole.yardage_blue, courseHole.yardage_white]
-                .filter(Boolean)
-                .filter((v, i, a) => a.indexOf(v) === i)
-              return yards.length > 0 ? ` · ${yards.join(' / ')} yds` : ''
-            })()}
-          </span>
-          {courseHole.hazards && <span className="hole-hazard">⚠ {courseHole.hazards}</span>}
-        </div>
-      )}
+      {/* Hole info badge — always rendered to reserve layout space, hidden when not applicable */}
+      <div className={`hole-info-badge${(!courseHole || caddieMode !== 'hole') ? ' hole-info-badge--empty' : ''}`}>
+        {courseHole && caddieMode === 'hole' && (
+          <>
+            <span>
+              Hole {courseHole.hole_number} · Par {courseHole.par}
+              {(() => {
+                const yards = [courseHole.yardage_black, courseHole.yardage_blue, courseHole.yardage_white]
+                  .filter(Boolean)
+                  .filter((v, i, a) => a.indexOf(v) === i)
+                return yards.length > 0 ? ` · ${yards.join(' / ')} yds` : ''
+              })()}
+            </span>
+            {courseHole.hazards && <span className="hole-hazard">⚠ {courseHole.hazards}</span>}
+          </>
+        )}
+      </div>
 
       {/* Mid-round notes — shown when there's an active round */}
       {activeRoundId && (

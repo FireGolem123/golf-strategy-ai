@@ -106,6 +106,12 @@
   margin-bottom: 16px;
 }
 
+.hole-info-badge--empty {
+  background: transparent;
+  border-color: transparent;
+  min-height: 40px;
+}
+
 .hole-hazard {
   color: var(--gold);
 }
