@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { LogoMark } from '../components/Logo'
 import '../styles/Auth.css'
 
 function GoogleIcon() {
@@ -135,7 +136,7 @@ export default function Auth() {
   return (
     <div className="auth-page">
       <div className="auth-logo">
-        <span className="auth-logo-icon">⛳</span>
+        <LogoMark size={72} />
         <h1 className="auth-title">Caddie AI</h1>
         <p className="auth-subtitle">Your smart golf companion</p>
       </div>
