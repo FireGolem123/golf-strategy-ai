@@ -218,6 +218,150 @@
   margin-top: 4px;
 }
 
+/* Merge panel */
+.active-action {
+  border-color: var(--green-400);
+  color: var(--green-300);
+}
+
+.merge-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--green-800);
+  border: 1px solid var(--green-600);
+  border-radius: 10px;
+}
+
+.merge-label {
+  font-size: 13px;
+  color: var(--gray-300);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.merge-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.merge-select {
+  flex: 1;
+  width: auto; /* override form-select's width: 100% */
+  min-width: 0;
+  font-size: 13px;
+}
+
+.merge-btn {
+  flex: 0 0 72px;
+  padding: 10px 0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.merge-hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-top: 8px;
+}
+
+/* Unlinked shots */
+.unlinked-card {
+  border-color: var(--green-500);
+  padding: 14px 16px;
+}
+
+.unlinked-header {
+  width: 100%;
+  background: none;
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  gap: 10px;
+}
+
+.unlinked-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unlinked-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green-300);
+}
+
+.unlinked-subtitle {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.unlinked-list {
+  margin-top: 4px;
+}
+
+.unlinked-shot-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--green-700);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unlinked-shot-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.unlinked-shot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.unlinked-shot-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unlinked-shot-preview {
+  font-size: 13px;
+  color: var(--gray-200);
+  line-height: 1.4;
+}
+
+.unlinked-shot-clubs {
+  font-size: 12px;
+  color: var(--gray-400);
+}
+
+.unlinked-assign-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.unlinked-select {
+  flex: 1;
+  font-size: 13px;
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.unlinked-assign-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

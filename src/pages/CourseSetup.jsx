@@ -15,10 +15,8 @@ const EMPTY_HOLE = {
   personal_notes: '',
 }
 
-// Flexible tees lookup — handles male/Male/MALE/mens etc.
 function getTeesForGender(tees, gender) {
   if (!tees || typeof tees !== 'object') return []
-  // Try exact key first, then capitalized, then case-insensitive scan
   if (Array.isArray(tees[gender])) return tees[gender]
   const cap = gender.charAt(0).toUpperCase() + gender.slice(1)
   if (Array.isArray(tees[cap])) return tees[cap]
@@ -28,16 +26,16 @@ function getTeesForGender(tees, gender) {
   return []
 }
 
-// Map a tee name to the yardage column it best fits
 function teeToYardageCol(teeName) {
   const n = (teeName || '').toLowerCase()
   if (n.includes('black') || n.includes('champion') || n.includes('tournament') || n.includes('gold')) return 'yardage_black'
-  if (n.includes('white') || n.includes('middle') || n.includes("men")) return 'yardage_white'
+  if (n.includes('white') || n.includes('middle') || n.includes('men')) return 'yardage_white'
   return 'yardage_blue'
 }
 
 export default function CourseSetup() {
-  // ── Manual entry state ─────────────────────────────────────────
+  // ── Core editor state ──────────────────────────────────────────
+  const [allCourseNames, setAllCourseNames] = useState([])   // courses the user has saved
   const [courseName, setCourseName] = useState('')
   const [selectedHole, setSelectedHole] = useState('1')
   const [holeData, setHoleData] = useState(EMPTY_HOLE)
@@ -46,14 +44,16 @@ export default function CourseSetup() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // ── Search + import state ──────────────────────────────────────
+  // ── Search panel state (collapsible) ──────────────────────────
+  const [showSearch, setShowSearch] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState(null)
 
-  const [importCourse, setImportCourse] = useState(null)       // full Course object
-  const [importCourseName, setImportCourseName] = useState('') // editable save-as name
+  // ── Import state ───────────────────────────────────────────────
+  const [importCourse, setImportCourse] = useState(null)
+  const [importCourseName, setImportCourseName] = useState('')
   const [importGender, setImportGender] = useState('male')
   const [importTeeName, setImportTeeName] = useState('')
   const [importLoading, setImportLoading] = useState(false)
@@ -61,27 +61,43 @@ export default function CourseSetup() {
   const [importError, setImportError] = useState(null)
   const [importSuccess, setImportSuccess] = useState(false)
 
-  // Derived: current tee box selection
   const availableTees = getTeesForGender(importCourse?.tees, importGender)
   const selectedTeeBox = availableTees.find(t => t.tee_name === importTeeName) || null
 
-  // ── Manual entry effects ───────────────────────────────────────
+  // ── Load saved course names on mount ──────────────────────────
   useEffect(() => {
-    if (courseName.trim()) loadExistingHoles(courseName)
-    else setExistingHoles([])
+    loadAllCourseNames()
+  }, [])
+
+  // ── Load holes when course name changes ───────────────────────
+  useEffect(() => {
+    if (courseName.trim()) {
+      loadExistingHoles(courseName)
+    } else {
+      setExistingHoles([])
+    }
   }, [courseName])
 
   useEffect(() => {
-    if (courseName.trim() && selectedHole) loadHole(courseName, parseInt(selectedHole))
+    if (courseName.trim() && selectedHole) {
+      loadHole(courseName, parseInt(selectedHole))
+    }
   }, [courseName, selectedHole])
 
-  // When gender changes, reset tee selection to first available
   useEffect(() => {
     const tees = importCourse?.tees?.[importGender] || []
     setImportTeeName(tees[0]?.tee_name || '')
   }, [importGender, importCourse])
 
-  // ── Manual entry functions ─────────────────────────────────────
+  // ── Data functions ─────────────────────────────────────────────
+  async function loadAllCourseNames() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('course_holes').select('course_name').eq('user_id', user.id)
+    if (data) setAllCourseNames([...new Set(data.map(h => h.course_name))].sort())
+  }
+
   async function loadExistingHoles(name) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -140,6 +156,7 @@ export default function CourseSetup() {
     else {
       setSaved(true); setTimeout(() => setSaved(false), 2500)
       loadExistingHoles(courseName)
+      loadAllCourseNames()
     }
     setSaving(false)
   }
@@ -154,13 +171,13 @@ export default function CourseSetup() {
     if (parseInt(selectedHole) === holeNum) setHoleData(EMPTY_HOLE)
   }
 
-  // ── Search + import functions ──────────────────────────────────
+  // ── Search functions ───────────────────────────────────────────
   async function handleSearch() {
     if (!searchQuery.trim()) return
     setSearchLoading(true); setSearchError(null); setSearchResults([])
     try {
       const results = await searchCourses(searchQuery)
-      if (results.length === 0) setSearchError('No courses found — try a different name or use manual entry below.')
+      if (results.length === 0) setSearchError('No courses found — try a different name.')
       else setSearchResults(results)
     } catch (err) {
       setSearchError(err.message)
@@ -172,19 +189,15 @@ export default function CourseSetup() {
   async function handleSelectResult(course) {
     setImportLoading(true); setImportError(null); setSearchResults([])
     try {
-      // The spec says search returns full Course objects, so check if tees are already present
       const hasTees = course.tees && typeof course.tees === 'object' &&
         Object.values(course.tees).some(v => Array.isArray(v) && v.length > 0)
-
       let full = hasTees ? course : await getCourseById(course.id)
       if (!full) throw new Error('Course details not found.')
-
       const derivedName = (full.course_name && full.course_name !== full.club_name)
         ? `${full.club_name} — ${full.course_name}`
         : (full.club_name || full.course_name || '')
-
       setImportCourse(full)
-      setImportCourseName(derivedName)
+      setImportCourseName(courseName.trim() || derivedName)
       setImportGender('male')
     } catch (err) {
       setImportError(err.message)
@@ -193,12 +206,12 @@ export default function CourseSetup() {
     }
   }
 
+  // ── Import — preserves existing hazard/green/personal notes ───
   async function handleImport() {
     if (!selectedTeeBox) { setImportError('Select a tee first.'); return }
     if (!importCourseName.trim()) { setImportError('Enter a name for this course.'); return }
 
     setImporting(true); setImportError(null)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setImportError('Not logged in.'); setImporting(false); return }
 
@@ -207,9 +220,16 @@ export default function CourseSetup() {
     const apiHoles = Array.isArray(selectedTeeBox.holes) ? selectedTeeBox.holes : []
     const holesCount = selectedTeeBox.number_of_holes || 18
 
+    // Fetch existing holes so we can preserve notes
+    const { data: existingData } = await supabase
+      .from('course_holes').select('hole_number, hazards, green_notes, personal_notes')
+      .eq('user_id', user.id).eq('course_name', name)
+    const existingMap = {}
+    ;(existingData || []).forEach(h => { existingMap[h.hole_number] = h })
+
     const rows = Array.from({ length: holesCount }, (_, i) => {
       const h = apiHoles[i] || {}
-      // Only set the yardage column matching this tee; undefined = don't overwrite others
+      const existing = existingMap[i + 1] || {}
       return {
         user_id: user.id,
         course_name: name,
@@ -218,9 +238,10 @@ export default function CourseSetup() {
         yardage_black: col === 'yardage_black' ? (h.yardage ?? null) : undefined,
         yardage_blue: col === 'yardage_blue' ? (h.yardage ?? null) : undefined,
         yardage_white: col === 'yardage_white' ? (h.yardage ?? null) : undefined,
-        hazards: null,
-        green_notes: null,
-        personal_notes: null,
+        // Preserve any notes the user has already written
+        hazards: existing.hazards ?? null,
+        green_notes: existing.green_notes ?? null,
+        personal_notes: existing.personal_notes ?? null,
       }
     })
 
@@ -233,7 +254,6 @@ export default function CourseSetup() {
       return
     }
 
-    // Save tee rating/slope to course_tees
     await supabase.from('course_tees').upsert({
       user_id: user.id,
       course_name: name,
@@ -245,13 +265,15 @@ export default function CourseSetup() {
       holes_played: holesCount,
     }, { onConflict: 'user_id,course_name,tee_name,gender' })
 
-    // Apply to manual entry section
     setCourseName(name)
     setImportCourse(null)
+    setShowSearch(false)
     setSearchQuery('')
+    setSearchResults([])
     setImportSuccess(true)
     setTimeout(() => setImportSuccess(false), 4000)
     setImporting(false)
+    loadAllCourseNames()
   }
 
   function cancelImport() {
@@ -264,58 +286,101 @@ export default function CourseSetup() {
   return (
     <div className="page course-page">
       <div className="page-header">
-        <h1 className="page-title">Course Setup</h1>
-        <p className="page-subtitle">Import from GolfCourseAPI or build your yardage book manually</p>
+        <h1 className="page-title">My Courses</h1>
+        <p className="page-subtitle">Build your yardage book — the caddie uses it every shot</p>
       </div>
 
-      {/* ── API Search ─────────────────────────────────────────── */}
+      {/* ── Saved courses quick-pick ──────────────────────────── */}
+      {allCourseNames.length > 0 && (
+        <div className="saved-courses-row">
+          <p className="saved-courses-label">Your courses</p>
+          <div className="course-chips">
+            {allCourseNames.map(name => (
+              <button
+                key={name}
+                className={`course-chip ${courseName === name ? 'active' : ''}`}
+                onClick={() => { setCourseName(name); setSelectedHole('1') }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Course name + search trigger ──────────────────────── */}
       <div className="card">
-        <h2 className="section-title">Search for a course</h2>
-        <div className="search-row">
-          <input
-            className="form-input search-input"
-            placeholder="e.g. Cedarbrook, Pebble Beach…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleSearch() }}
-          />
+        <div className="course-name-row">
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Course name</label>
+            <input
+              className="form-input"
+              placeholder="e.g. Cedarbrook"
+              value={courseName}
+              onChange={e => { setCourseName(e.target.value); setShowSearch(false); setImportCourse(null) }}
+            />
+          </div>
           <button
-            className="btn btn-secondary search-btn"
-            onClick={handleSearch}
-            disabled={searchLoading || !searchQuery.trim()}
+            className={`btn btn-secondary search-trigger-btn ${showSearch ? 'active' : ''}`}
+            onClick={() => { setShowSearch(v => !v); setImportCourse(null) }}
+            title="Search online for yardages"
           >
-            {searchLoading ? '…' : 'Search'}
+            🔍 Import
           </button>
         </div>
 
-        {importLoading && <p className="text-muted" style={{ marginTop: 10 }}>Loading course details…</p>}
+        {/* Search panel */}
+        {showSearch && (
+          <div className="search-panel">
+            <p className="search-panel-hint">
+              Search for your course to import hole yardages and par. Your hazard notes and personal notes are always preserved.
+            </p>
+            <div className="search-row">
+              <input
+                className="form-input search-input"
+                placeholder="Search by course or club name…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch() }}
+              />
+              <button
+                className="btn btn-secondary search-btn"
+                onClick={handleSearch}
+                disabled={searchLoading || !searchQuery.trim()}
+              >
+                {searchLoading ? '…' : 'Search'}
+              </button>
+            </div>
 
-        {searchError && <div className="cs-error">{searchError}</div>}
+            {importLoading && <p className="text-muted" style={{ marginTop: 10 }}>Loading course details…</p>}
+            {searchError && <div className="cs-error">{searchError}</div>}
 
-        {searchResults.length > 0 && (
-          <div className="search-results">
-            {searchResults.map(c => {
-              const loc = [c.location?.city, c.location?.state].filter(Boolean).join(', ')
-              return (
-                <button
-                  key={c.id}
-                  className="search-result-item"
-                  onClick={() => handleSelectResult(c)}
-                >
-                  <span className="result-name">{c.club_name}</span>
-                  {c.course_name && c.course_name !== c.club_name && (
-                    <span className="result-course">{c.course_name}</span>
-                  )}
-                  {loc && <span className="result-loc">{loc}</span>}
-                </button>
-              )
-            })}
+            {searchResults.length > 0 && (
+              <div className="search-results">
+                {searchResults.map(c => {
+                  const loc = [c.location?.city, c.location?.state].filter(Boolean).join(', ')
+                  return (
+                    <button
+                      key={c.id}
+                      className="search-result-item"
+                      onClick={() => handleSelectResult(c)}
+                    >
+                      <span className="result-name">{c.club_name}</span>
+                      {c.course_name && c.course_name !== c.club_name && (
+                        <span className="result-course">{c.course_name}</span>
+                      )}
+                      {loc && <span className="result-loc">{loc}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {importSuccess && (
-          <div className="cs-success">
-            Course imported — scroll down to edit individual holes or add hazard notes.
+          <div className="cs-success" style={{ marginTop: 12 }}>
+            Yardages imported — your notes were kept. Now add hazards and personal notes hole by hole below.
           </div>
         )}
       </div>
@@ -324,6 +389,9 @@ export default function CourseSetup() {
       {importCourse && (
         <div className="card import-preview-card">
           <h2 className="section-title">Confirm import</h2>
+          <p className="search-panel-hint" style={{ marginBottom: 14 }}>
+            This updates yardages and par only — any hazard notes or personal notes you've already saved won't be touched.
+          </p>
 
           {importError && <div className="cs-error" style={{ marginBottom: 12 }}>{importError}</div>}
 
@@ -334,10 +402,9 @@ export default function CourseSetup() {
               value={importCourseName}
               onChange={e => setImportCourseName(e.target.value)}
             />
-            <p className="form-hint">This is how the course appears in Caddie and Scorecard tabs.</p>
+            <p className="form-hint">Must match the name in Caddie and Scorecard tabs exactly.</p>
           </div>
 
-          {/* Gender toggle */}
           <div className="form-group">
             <label className="form-label">Tees</label>
             <div className="cs-toggle-row">
@@ -347,7 +414,7 @@ export default function CourseSetup() {
                   className={`cs-toggle-btn ${importGender === g ? 'active' : ''}`}
                   onClick={() => setImportGender(g)}
                 >
-                  {g === 'male' ? 'Men\'s' : 'Women\'s'}
+                  {g === 'male' ? "Men's" : "Women's"}
                 </button>
               ))}
             </div>
@@ -355,14 +422,10 @@ export default function CourseSetup() {
 
           {availableTees.length === 0 ? (
             <div className="cs-error">
-              No {importGender} tees found.
-              {importCourse?.tees && typeof importCourse.tees === 'object' && Object.keys(importCourse.tees).length > 0
-                ? ` Tees keys from API: "${Object.keys(importCourse.tees).join('", "')}". Check console (F12) for full response.`
-                : ' The API returned no tees data for this course. Check console (F12) for the full response.'}
+              No {importGender} tees found in the API data for this course.
             </div>
           ) : (
             <>
-              {/* Tee name dropdown */}
               <div className="form-group">
                 <label className="form-label">Select tee</label>
                 <select
@@ -376,7 +439,6 @@ export default function CourseSetup() {
                 </select>
               </div>
 
-              {/* Rating / slope strip */}
               {selectedTeeBox && (
                 <div className="tee-stats-row">
                   <div className="tee-stat">
@@ -398,29 +460,22 @@ export default function CourseSetup() {
                 </div>
               )}
 
-              {/* Hole table */}
               {selectedTeeBox && (() => {
                 const apiHoles = Array.isArray(selectedTeeBox.holes) ? selectedTeeBox.holes : []
                 const count = selectedTeeBox.number_of_holes || 18
                 const missingCount = Array.from({ length: count }, (_, i) => apiHoles[i] || {})
                   .filter(h => !h.par && !h.yardage).length
-
                 return (
                   <>
                     {missingCount > 0 && (
                       <div className="cs-warn">
-                        {missingCount} hole{missingCount > 1 ? 's' : ''} missing data from API — shown as "—". You can fill them in manually after importing.
+                        {missingCount} hole{missingCount > 1 ? 's' : ''} missing data — shown as "—". Fill in manually after importing.
                       </div>
                     )}
                     <div className="import-table-wrap">
                       <table className="import-hole-table">
                         <thead>
-                          <tr>
-                            <th>Hole</th>
-                            <th>Par</th>
-                            <th>Yards</th>
-                            <th>S.I.</th>
-                          </tr>
+                          <tr><th>Hole</th><th>Par</th><th>Yards</th><th>S.I.</th></tr>
                         </thead>
                         <tbody>
                           {Array.from({ length: count }, (_, i) => {
@@ -437,12 +492,10 @@ export default function CourseSetup() {
                         </tbody>
                       </table>
                     </div>
-
                     <p className="form-hint" style={{ marginTop: 10 }}>
                       Yardage will be saved to the <strong>{teeToYardageCol(importTeeName).replace('yardage_', '').replace('_', ' ')}</strong> column.
-                      Re-import a different tee to fill in other yardage columns.
+                      Re-import a different tee to fill other columns.
                     </p>
-
                     <div className="import-btn-row">
                       <button
                         className="btn btn-primary"
@@ -451,9 +504,7 @@ export default function CourseSetup() {
                       >
                         {importing ? 'Importing…' : `Import ${count} holes`}
                       </button>
-                      <button className="btn btn-secondary" onClick={cancelImport}>
-                        Cancel
-                      </button>
+                      <button className="btn btn-secondary" onClick={cancelImport}>Cancel</button>
                     </div>
                   </>
                 )
@@ -462,153 +513,153 @@ export default function CourseSetup() {
           )}
 
           {availableTees.length === 0 && (
-            <button className="btn btn-secondary" onClick={cancelImport} style={{ marginTop: 12 }}>
-              Cancel
-            </button>
+            <button className="btn btn-secondary" onClick={cancelImport} style={{ marginTop: 12 }}>Cancel</button>
           )}
         </div>
       )}
 
-      {/* ── Manual entry ───────────────────────────────────────── */}
-      <div className="card">
-        <h2 className="section-title">Manual entry</h2>
-
-        <div className="form-group">
-          <label className="form-label">Course Name</label>
-          <input
-            className="form-input"
-            placeholder="e.g. Augusta National"
-            value={courseName}
-            onChange={e => setCourseName(e.target.value)}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Hole</label>
-          <div className="hole-tabs">
-            {HOLES.map(h => {
-              const hasData = existingHoles.some(e => e.hole_number === h)
-              return (
-                <button
-                  key={h}
-                  className={`hole-tab ${selectedHole === String(h) ? 'active' : ''} ${hasData ? 'has-data' : ''}`}
-                  onClick={() => setSelectedHole(String(h))}
-                >
-                  {h}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <p className="text-muted">Loading…</p>
-      ) : (
-        <div className="card">
-          <h2 className="section-title">Hole {selectedHole} Details</h2>
-
-          <div className="form-row">
-            <div className="form-group form-row-item">
-              <label className="form-label">Par</label>
-              <select
-                className="form-select"
-                value={holeData.par}
-                onChange={e => setHoleData(d => ({ ...d, par: e.target.value }))}
-              >
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-              </select>
+      {/* ── Hole editor — only shown once a course is named ──────── */}
+      {courseName.trim() && (
+        <>
+          <div className="card">
+            <div className="hole-editor-header">
+              <h2 className="section-title" style={{ marginBottom: 0 }}>
+                {courseName} — Hole editor
+              </h2>
+              <span className="hole-editor-hint">
+                {existingHoles.length > 0 ? `${existingHoles.length} hole${existingHoles.length !== 1 ? 's' : ''} saved` : 'No holes yet'}
+              </span>
             </div>
-            <div className="form-group form-row-item">
-              <label className="form-label">Black (yds)</label>
-              <input className="form-input" type="number" placeholder="—" value={holeData.yardage_black}
-                onChange={e => setHoleData(d => ({ ...d, yardage_black: e.target.value }))} />
-            </div>
-            <div className="form-group form-row-item">
-              <label className="form-label">Blue (yds)</label>
-              <input className="form-input" type="number" placeholder="—" value={holeData.yardage_blue}
-                onChange={e => setHoleData(d => ({ ...d, yardage_blue: e.target.value }))} />
-            </div>
-            <div className="form-group form-row-item">
-              <label className="form-label">White (yds)</label>
-              <input className="form-input" type="number" placeholder="—" value={holeData.yardage_white}
-                onChange={e => setHoleData(d => ({ ...d, yardage_white: e.target.value }))} />
+            <p className="search-panel-hint" style={{ marginBottom: 14, marginTop: 6 }}>
+              Green = hole has data. Select a hole then fill in yardages, hazards, and your personal notes.
+            </p>
+
+            <div className="hole-tabs">
+              {HOLES.map(h => {
+                const hasData = existingHoles.some(e => e.hole_number === h)
+                return (
+                  <button
+                    key={h}
+                    className={`hole-tab ${selectedHole === String(h) ? 'active' : ''} ${hasData ? 'has-data' : ''}`}
+                    onClick={() => setSelectedHole(String(h))}
+                  >
+                    {h}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Hazards</label>
-            <textarea
-              className="form-textarea"
-              placeholder="e.g. bunkers front right, water left of green, OB behind green"
-              value={holeData.hazards}
-              onChange={e => setHoleData(d => ({ ...d, hazards: e.target.value }))}
-              rows={2}
-            />
-          </div>
+          {loading ? (
+            <p className="text-muted" style={{ textAlign: 'center' }}>Loading…</p>
+          ) : (
+            <div className="card">
+              <h2 className="section-title">Hole {selectedHole}</h2>
 
-          <div className="form-group">
-            <label className="form-label">Green Notes</label>
-            <textarea
-              className="form-textarea"
-              placeholder="e.g. slopes back to front, fast, two-tier, pin usually back right Sunday"
-              value={holeData.green_notes}
-              onChange={e => setHoleData(d => ({ ...d, green_notes: e.target.value }))}
-              rows={2}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Personal Notes</label>
-            <textarea
-              className="form-textarea"
-              placeholder="e.g. always miss right here — aim at left edge of green. Take one more club."
-              value={holeData.personal_notes}
-              onChange={e => setHoleData(d => ({ ...d, personal_notes: e.target.value }))}
-              rows={2}
-            />
-          </div>
-
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving || !courseName.trim()}>
-            {saving ? 'Saving…' : `Save Hole ${selectedHole}`}
-          </button>
-
-          {saved && <div className="success-banner" style={{ marginTop: 12 }}>Hole {selectedHole} saved ✓</div>}
-        </div>
-      )}
-
-      {/* ── Existing holes list ─────────────────────────────────── */}
-      {existingHoles.length > 0 && (
-        <div className="card">
-          <h2 className="section-title">{courseName} — Saved Holes</h2>
-          {existingHoles.map(hole => (
-            <div key={hole.id} className="hole-list-item">
-              <div className="hole-list-info">
-                <span className="hole-list-num">Hole {hole.hole_number}</span>
-                <span className="hole-list-par text-muted">Par {hole.par}</span>
-                {hole.yardage_white && <span className="text-muted">{hole.yardage_white} yds (white)</span>}
+              <div className="form-row">
+                <div className="form-group form-row-item">
+                  <label className="form-label">Par</label>
+                  <select
+                    className="form-select"
+                    value={holeData.par}
+                    onChange={e => setHoleData(d => ({ ...d, par: e.target.value }))}
+                  >
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+                <div className="form-group form-row-item">
+                  <label className="form-label">Black (yds)</label>
+                  <input className="form-input" type="number" placeholder="—" value={holeData.yardage_black}
+                    onChange={e => setHoleData(d => ({ ...d, yardage_black: e.target.value }))} />
+                </div>
+                <div className="form-group form-row-item">
+                  <label className="form-label">Blue (yds)</label>
+                  <input className="form-input" type="number" placeholder="—" value={holeData.yardage_blue}
+                    onChange={e => setHoleData(d => ({ ...d, yardage_blue: e.target.value }))} />
+                </div>
+                <div className="form-group form-row-item">
+                  <label className="form-label">White (yds)</label>
+                  <input className="form-input" type="number" placeholder="—" value={holeData.yardage_white}
+                    onChange={e => setHoleData(d => ({ ...d, yardage_white: e.target.value }))} />
+                </div>
               </div>
-              <div className="hole-list-actions">
-                <button
-                  className="btn btn-secondary"
-                  style={{ padding: '4px 10px', fontSize: 12 }}
-                  onClick={() => setSelectedHole(String(hole.hole_number))}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-danger"
-                  style={{ padding: '4px 10px', fontSize: 12 }}
-                  onClick={() => handleDeleteHole(hole.hole_number)}
-                >
-                  Delete
-                </button>
+
+              <div className="form-group">
+                <label className="form-label">Hazards</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="e.g. bunkers front right, water left of green, OB behind green"
+                  value={holeData.hazards}
+                  onChange={e => setHoleData(d => ({ ...d, hazards: e.target.value }))}
+                  rows={2}
+                />
               </div>
+
+              <div className="form-group">
+                <label className="form-label">Green notes</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="e.g. slopes back to front, fast, two-tier, pin usually back right on weekends"
+                  value={holeData.green_notes}
+                  onChange={e => setHoleData(d => ({ ...d, green_notes: e.target.value }))}
+                  rows={2}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">My notes <span className="form-label-sub">(just for you — the caddie reads these)</span></label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="e.g. always miss right here — aim at left edge of green. Take one more club. Don't be short."
+                  value={holeData.personal_notes}
+                  onChange={e => setHoleData(d => ({ ...d, personal_notes: e.target.value }))}
+                  rows={2}
+                />
+              </div>
+
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving || !courseName.trim()}>
+                {saving ? 'Saving…' : `Save Hole ${selectedHole}`}
+              </button>
+
+              {saved && <div className="success-banner" style={{ marginTop: 12 }}>Hole {selectedHole} saved ✓</div>}
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* Compact saved holes overview */}
+          {existingHoles.length > 0 && (
+            <div className="card">
+              <h2 className="section-title">Saved holes</h2>
+              {existingHoles.map(hole => (
+                <div key={hole.id} className="hole-list-item">
+                  <div className="hole-list-info">
+                    <span className="hole-list-num">Hole {hole.hole_number}</span>
+                    <span className="hole-list-par text-muted">Par {hole.par}</span>
+                    {hole.yardage_white && <span className="text-muted">{hole.yardage_white} yds</span>}
+                    {hole.personal_notes && <span className="hole-has-notes">📝</span>}
+                  </div>
+                  <div className="hole-list-actions">
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      onClick={() => setSelectedHole(String(hole.hole_number))}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      style={{ padding: '4px 10px', fontSize: 12 }}
+                      onClick={() => handleDeleteHole(hole.hole_number)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { getClubRecommendation } from '../lib/claude'
+import { getClubRecommendation, getRoundStrategy } from '../lib/claude'
 import { getCurrentWeather, windDir } from '../lib/weather'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 import { useCourseData } from '../hooks/useCourseData'
@@ -27,11 +27,12 @@ function StarRating({ value, onChange }) {
 }
 
 function RecommendationDisplay({ text }) {
+  const HEADER_EMOJIS = ['🏌️', '✅', '⚠️', '🌦️', '🗺️', '📊', '⛳', '🎯']
   const lines = text.split('\n')
   return (
     <div className="recommendation">
       {lines.map((line, i) => {
-        if (line.startsWith('🏌️') || line.startsWith('✅') || line.startsWith('⚠️') || line.startsWith('🌦️')) {
+        if (HEADER_EMOJIS.some(e => line.startsWith(e))) {
           return <p key={i} className="rec-section-header">{line}</p>
         }
         if (line.startsWith('Club:')) {
@@ -58,6 +59,17 @@ export default function Home() {
   const [apiError, setApiError] = useState(null)
   const [activeRoundId, setActiveRoundId] = useState(null)
 
+  // Caddie mode
+  const [caddieMode, setCaddieMode] = useState('hole') // 'hole' | 'round'
+  const [allCourseHoles, setAllCourseHoles] = useState([])
+  const [roundStrategy, setRoundStrategy] = useState('')
+  const [roundStrategyLoading, setRoundStrategyLoading] = useState(false)
+
+  // Mid-round notes
+  const [roundNotes, setRoundNotes] = useState('')
+  const [showRoundNotes, setShowRoundNotes] = useState(false)
+  const roundNotesTimerRef = useRef(null)
+
   const [weather, setWeather] = useState(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [weatherError, setWeatherError] = useState(null)
@@ -76,6 +88,23 @@ export default function Home() {
     loadInitialData()
     fetchWeather()
   }, [])
+
+  // Load all holes for selected course (used in round mode)
+  useEffect(() => {
+    if (!selectedCourse) { setAllCourseHoles([]); return }
+    supabase.from('course_holes').select('*').eq('course_name', selectedCourse)
+      .order('hole_number').then(({ data }) => setAllCourseHoles(data || []))
+  }, [selectedCourse])
+
+  // Debounce-save round notes to Supabase rounds.notes
+  useEffect(() => {
+    if (!activeRoundId) return
+    if (roundNotesTimerRef.current) clearTimeout(roundNotesTimerRef.current)
+    roundNotesTimerRef.current = setTimeout(async () => {
+      await supabase.from('rounds').update({ notes: roundNotes || null }).eq('id', activeRoundId)
+    }, 1500)
+    return () => { if (roundNotesTimerRef.current) clearTimeout(roundNotesTimerRef.current) }
+  }, [roundNotes, activeRoundId])
 
   async function loadInitialData() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -104,8 +133,11 @@ export default function Home() {
 
     const today = new Date().toISOString().split('T')[0]
     const { data: existingRound } = await supabase
-      .from('rounds').select('id').eq('user_id', user.id).eq('date', today).maybeSingle()
-    if (existingRound) setActiveRoundId(existingRound.id)
+      .from('rounds').select('id, notes').eq('user_id', user.id).eq('date', today).maybeSingle()
+    if (existingRound) {
+      setActiveRoundId(existingRound.id)
+      if (existingRound.notes) setRoundNotes(existingRound.notes)
+    }
   }
 
   async function fetchWeather() {
@@ -129,13 +161,28 @@ export default function Home() {
     setShowFeedback(false)
     setFeedbackSaved(false)
     try {
-      const result = await getClubRecommendation(transcript, playerProfile, clubProfiles, courseHole, shotHistory, weather)
+      const result = await getClubRecommendation(transcript, playerProfile, clubProfiles, courseHole, shotHistory, weather, roundNotes)
       setRecommendation(result)
       setShowFeedback(true)
     } catch (err) {
       setApiError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleRoundStrategy() {
+    if (!selectedCourse) return
+    setRoundStrategyLoading(true)
+    setApiError(null)
+    setRoundStrategy('')
+    try {
+      const result = await getRoundStrategy(selectedCourse, allCourseHoles, playerProfile, clubProfiles, shotHistory, weather, roundNotes)
+      setRoundStrategy(result)
+    } catch (err) {
+      setApiError(err.message)
+    } finally {
+      setRoundStrategyLoading(false)
     }
   }
 
@@ -178,6 +225,13 @@ export default function Home() {
     else startListening()
   }
 
+  const handleModeSwitch = (mode) => {
+    setCaddieMode(mode)
+    setRecommendation('')
+    setRoundStrategy('')
+    setApiError(null)
+  }
+
   return (
     <div className="page home-page">
       <div className="home-header">
@@ -213,7 +267,23 @@ export default function Home() {
         )}
       </div>
 
-      {/* Course & Hole selectors */}
+      {/* Mode toggle */}
+      <div className="caddie-mode-toggle">
+        <button
+          className={`mode-btn ${caddieMode === 'hole' ? 'active' : ''}`}
+          onClick={() => handleModeSwitch('hole')}
+        >
+          🏌️ Hole Caddie
+        </button>
+        <button
+          className={`mode-btn ${caddieMode === 'round' ? 'active' : ''}`}
+          onClick={() => handleModeSwitch('round')}
+        >
+          🗺️ Round Plan
+        </button>
+      </div>
+
+      {/* Course selector — shared between modes */}
       <div className="selector-row">
         <div className="form-group selector-item">
           <label className="form-label">Course</label>
@@ -228,23 +298,27 @@ export default function Home() {
             ))}
           </select>
         </div>
-        <div className="form-group selector-item">
-          <label className="form-label">Hole</label>
-          <select
-            className="form-select"
-            value={selectedHole}
-            onChange={e => setSelectedHole(e.target.value)}
-          >
-            <option value="">—</option>
-            {HOLES.map(h => (
-              <option key={h} value={h}>{h}</option>
-            ))}
-          </select>
-        </div>
+
+        {/* Hole selector — hole mode only */}
+        {caddieMode === 'hole' && (
+          <div className="form-group selector-item">
+            <label className="form-label">Hole</label>
+            <select
+              className="form-select"
+              value={selectedHole}
+              onChange={e => setSelectedHole(e.target.value)}
+            >
+              <option value="">—</option>
+              {HOLES.map(h => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Course hole info badge */}
-      {courseHole && (
+      {/* Hole info badge — hole mode only */}
+      {caddieMode === 'hole' && courseHole && (
         <div className="hole-info-badge">
           <span>
             Hole {courseHole.hole_number} · Par {courseHole.par}
@@ -259,98 +333,159 @@ export default function Home() {
         </div>
       )}
 
-      {/* Voice input */}
-      <div className="voice-section">
-        <button
-          className={`mic-button ${isListening ? 'listening' : ''}`}
-          onClick={handleMicToggle}
-          disabled={!isSupported}
-          aria-label={isListening ? 'Stop listening' : 'Start listening'}
-        >
-          <span className="mic-icon">{isListening ? '⏹' : '🎙'}</span>
-          <span className="mic-label">{isListening ? 'Tap to stop' : 'Tap to speak'}</span>
-        </button>
-
-        {!isSupported && (
-          <p className="text-muted" style={{ textAlign: 'center', marginTop: 8 }}>
-            Voice not available — use Chrome or Edge
-          </p>
-        )}
-
-        {voiceError && <p className="error-text">{voiceError}</p>}
-
-        {isListening && (
-          <div className="listening-indicator">
-            <span className="pulse-dot" />
-            <span>Listening…</span>
-          </div>
-        )}
-      </div>
-
-      {/* Transcript display / manual edit */}
-      <div className="form-group">
-        <label className="form-label">Situation</label>
-        <textarea
-          className="form-textarea transcript-box"
-          placeholder="Speak above or type your situation here…&#10;e.g. '142 yards to the pin, flag is back right, bunker short right, wind off the left'"
-          value={transcript}
-          onChange={e => setTranscript(e.target.value)}
-          rows={4}
-        />
-      </div>
-
-      <button
-        className="btn btn-primary"
-        onClick={handleSubmit}
-        disabled={loading || !transcript.trim()}
-      >
-        {loading ? 'Thinking…' : '⛳ Get Recommendation'}
-      </button>
-
-      {apiError && (
-        <div className="error-card">
-          <strong>Error:</strong> {apiError}
-        </div>
-      )}
-
-      {/* Recommendation */}
-      {recommendation && (
-        <div className="card recommendation-card">
-          <RecommendationDisplay text={recommendation} />
-        </div>
-      )}
-
-      {/* Feedback */}
-      {showFeedback && !feedbackSaved && (
-        <div className="card feedback-card">
-          <h3 className="feedback-title">How was this suggestion?</h3>
-          <StarRating value={rating} onChange={setRating} />
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label className="form-label">Club you actually hit</label>
-            <input
-              className="form-input"
-              placeholder="e.g. 8-iron"
-              value={clubUsed}
-              onChange={e => setClubUsed(e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">What happened?</label>
-            <input
-              className="form-input"
-              placeholder="e.g. hit green, 10 feet short"
-              value={outcome}
-              onChange={e => setOutcome(e.target.value)}
-            />
-          </div>
-          <button className="btn btn-secondary" onClick={handleFeedbackSave}>
-            Save Shot
+      {/* Mid-round notes — shown when there's an active round */}
+      {activeRoundId && (
+        <div className="round-notes-section">
+          <button
+            className="round-notes-toggle"
+            onClick={() => setShowRoundNotes(v => !v)}
+          >
+            <span>🎯 Round Adjustments{roundNotes.trim() ? ' ●' : ''}</span>
+            <span className="round-notes-chevron">{showRoundNotes ? '▲' : '▼'}</span>
           </button>
+          {showRoundNotes && (
+            <div className="round-notes-body">
+              <textarea
+                className="form-textarea"
+                placeholder="Note patterns you're seeing this round — e.g. 'irons going right and short today, driver feeling solid, greens are fast'"
+                value={roundNotes}
+                onChange={e => setRoundNotes(e.target.value)}
+                rows={3}
+              />
+              <p className="round-notes-hint">These will be factored into every recommendation this round.</p>
+            </div>
+          )}
         </div>
       )}
 
-      {feedbackSaved && (
-        <div className="success-banner">Shot saved to history ✓</div>
+      {/* ── HOLE MODE ── */}
+      {caddieMode === 'hole' && (
+        <>
+          {/* Voice input */}
+          <div className="voice-section">
+            <button
+              className={`mic-button ${isListening ? 'listening' : ''}`}
+              onClick={handleMicToggle}
+              disabled={!isSupported}
+              aria-label={isListening ? 'Stop listening' : 'Start listening'}
+            >
+              <span className="mic-icon">{isListening ? '⏹' : '🎙'}</span>
+              <span className="mic-label">{isListening ? 'Tap to stop' : 'Tap to speak'}</span>
+            </button>
+
+            {!isSupported && (
+              <p className="text-muted" style={{ textAlign: 'center', marginTop: 8 }}>
+                Voice not available — use Chrome or Edge
+              </p>
+            )}
+
+            {voiceError && <p className="error-text">{voiceError}</p>}
+
+            {isListening && (
+              <div className="listening-indicator">
+                <span className="pulse-dot" />
+                <span>Listening…</span>
+              </div>
+            )}
+          </div>
+
+          {/* Transcript display / manual edit */}
+          <div className="form-group">
+            <label className="form-label">Situation</label>
+            <textarea
+              className="form-textarea transcript-box"
+              placeholder="Speak above or type your situation here…&#10;e.g. '142 yards to the pin, flag is back right, bunker short right, wind off the left'"
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              rows={4}
+            />
+          </div>
+
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={loading || !transcript.trim()}
+          >
+            {loading ? 'Thinking…' : '⛳ Get Recommendation'}
+          </button>
+
+          {apiError && (
+            <div className="error-card">
+              <strong>Error:</strong> {apiError}
+            </div>
+          )}
+
+          {/* Recommendation */}
+          {recommendation && (
+            <div className="card recommendation-card">
+              <RecommendationDisplay text={recommendation} />
+            </div>
+          )}
+
+          {/* Feedback */}
+          {showFeedback && !feedbackSaved && (
+            <div className="card feedback-card">
+              <h3 className="feedback-title">How was this suggestion?</h3>
+              <StarRating value={rating} onChange={setRating} />
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label className="form-label">Club you actually hit</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. 8-iron"
+                  value={clubUsed}
+                  onChange={e => setClubUsed(e.target.value)}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">What happened?</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. hit green, 10 feet short"
+                  value={outcome}
+                  onChange={e => setOutcome(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-secondary" onClick={handleFeedbackSave}>
+                Save Shot
+              </button>
+            </div>
+          )}
+
+          {feedbackSaved && (
+            <div className="success-banner">Shot saved to history ✓</div>
+          )}
+        </>
+      )}
+
+      {/* ── ROUND MODE ── */}
+      {caddieMode === 'round' && (
+        <>
+          {allCourseHoles.length === 0 && selectedCourse && (
+            <p className="text-muted" style={{ fontSize: 13, textAlign: 'center', margin: '8px 0 12px' }}>
+              No hole data for this course — strategy will be based on your profile and conditions.
+            </p>
+          )}
+
+          <button
+            className="btn btn-primary"
+            onClick={handleRoundStrategy}
+            disabled={roundStrategyLoading || !selectedCourse}
+          >
+            {roundStrategyLoading ? 'Building game plan…' : '🗺️ Get Round Strategy'}
+          </button>
+
+          {apiError && (
+            <div className="error-card">
+              <strong>Error:</strong> {apiError}
+            </div>
+          )}
+
+          {roundStrategy && (
+            <div className="card recommendation-card">
+              <RecommendationDisplay text={roundStrategy} />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

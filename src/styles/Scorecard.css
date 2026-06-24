@@ -81,6 +81,49 @@
 .vs-par-under { color: var(--green-300); }
 .vs-par-even  { color: var(--gold); }
 
+/* ── Holes-played selector ───────────────────────────────────── */
+.holes-played-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.holes-quick-btn {
+  width: 52px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--green-600);
+  background: var(--green-900);
+  color: var(--gray-400);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.1s;
+}
+
+.holes-quick-btn.active {
+  background: var(--green-600);
+  border-color: var(--green-400);
+  color: var(--white);
+}
+
+.holes-custom-input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ── Finish early button ─────────────────────────────────────── */
+.finish-early-btn {
+  width: 100%;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
 /* ── Hole grid ───────────────────────────────────────────────── */
 .hole-grid {
   display: grid;
@@ -160,6 +203,33 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 14px;
+}
+
+.hole-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--green-600);
+  background: var(--green-900);
+  color: var(--green-300);
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  flex-shrink: 0;
+}
+
+.hole-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.hole-nav-btn:not(:disabled):active {
+  background: var(--green-700);
+  border-color: var(--green-400);
 }
 
 .hole-entry-title {

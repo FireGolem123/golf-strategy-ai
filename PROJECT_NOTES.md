@@ -1,6 +1,6 @@
 # Golf Strategy AI — Project Notes
 
-Last updated: June 22, 2026
+Last updated: June 24, 2026
 
 ## Status: All core features live ✅
 
@@ -8,6 +8,7 @@ Session 1: core caddie loop (voice → Claude → recommendation).
 Session 2: score tracking, photo import, handicap calculator.
 Session 3: weather, shot history feedback loop, GolfCourseAPI import, History edit/delete, caddie UX polish.
 Session 4: real auth (email + Google OAuth), visual consistency pass (SVG nav icons, Scorecard form alignment, toggle equal-width).
+Session 5: major QoL pass — scorecard persistence, hole nav, mid-round notes, round plan mode, course setup redesign, shot merging.
 
 ## What's built
 
@@ -16,12 +17,23 @@ Session 4: real auth (email + Google OAuth), visual consistency pass (SVG nav ic
 - Real auth: email/password + Google OAuth (Supabase Auth). Anonymous auth removed.
 - Auth page (`src/pages/Auth.jsx`): Sign In / Sign Up tabs, Google OAuth button, forgot password, email confirmation state.
 - Web Speech API voice input
-- Claude Haiku 4.5 for caddie recommendations and scorecard photo OCR
+- Claude Haiku 4.5 for caddie recommendations, scorecard photo OCR, and round strategy
 - OpenWeatherMap weather bar (auto-fetches via browser GPS on Caddie tab load)
 - GolfCourseAPI course search and import (Course tab)
 - Pages: Caddie (/), Profile (/profile), Course (/course-setup), Score (/scorecard), History (/history)
 - Pushed to GitHub: FireGolem123/golf-strategy-ai
 - Deployed to Vercel: https://golf-caddie-ai.vercel.app (auto-deploys on push to main)
+
+### Session 5 additions
+- **Scorecard tab persistence** — active round state saved to `localStorage`. Switching to Caddie tab and back no longer loses your round.
+- **Hole navigation** — prev/next (‹/›) buttons on the hole entry card so you can move between holes without going back to the grid.
+- **Flexible holes-played** — setup screen now accepts any number 1–18 (not just 9/18). Quick buttons for 9 and 18, plus a custom number input.
+- **Finish early** — "Save & Finish Round" button on the scoring screen saves whatever holes are entered without requiring all to be complete.
+- **Mid-round adjustments** — collapsible "Round Adjustments" section on the Caddie tab appears when a round is active today. Free-text notes (e.g. "hitting irons right and short") are saved to `rounds.notes` and injected into every Claude recommendation that round as high-priority context overriding profile defaults.
+- **Round Plan mode** — mode toggle (Hole / Round Plan) on the Caddie tab. Round Plan mode fetches all holes for the selected course and calls Claude for a full pre-round game plan: 3 focus themes + hole-by-hole tactical notes with explicit tee club suggestions. Driver is assumed default on par 4/5 unless a specific hazard overrides.
+- **Course Setup redesign** — "My Courses" page with saved-course chips for quick selection. Search/import is now a collapsible panel inline with the course editor (not a separate card). Import no longer overwrites hazard notes or personal notes — only updates yardage columns and par.
+- **Round merge in History** — "Move shots →" button on any round card that has shots. Moves all shots to a selected round (fixes the case where caddie was used outside a round and auto-created a separate round from the scorecard round).
+- **Unlinked shot assignment** — shots with no `round_id` appear as a collapsible "🔗 X unlinked shots" card in History with per-shot round assignment dropdowns.
 
 ## Database tables
 
@@ -49,11 +61,11 @@ Schema files (run in order in Supabase SQL editor):
 - `src/lib/golfCourseApi.js` — `searchCourses(query)` and `getCourseById(id)`. Auth header is `Key <token>` (not Bearer). Free tier = 50 req/day. getCourseById unwraps `{ course: {...} }` response wrapper.
 
 ### Pages
-- `src/pages/Home.jsx` — Caddie tab: voice input, weather bar, course/hole selectors, recommendation, feedback. Loads shot history (last 30) and passes to Claude.
+- `src/pages/Home.jsx` — Caddie tab: mode toggle (Hole/Round Plan), voice input, weather bar, course/hole selectors, mid-round adjustments section, recommendation, feedback. Loads shot history (last 30) and passes to Claude. Round Plan mode loads all course holes and calls `getRoundStrategy()`.
 - `src/pages/Profile.jsx` — Player profile, club distances, USGA handicap calculator
-- `src/pages/CourseSetup.jsx` — GolfCourseAPI search/import (top) + manual hole-by-hole entry (below)
-- `src/pages/Scorecard.jsx` — Round tracker: hole grid, per-hole stats, photo import via Claude vision, auto-saves, round auto-complete detection. Loads course_tees on course name change to pre-fill rating/slope.
-- `src/pages/History.jsx` — Round list with inline edit (course, date, score, tee, rating, slope, notes) and delete with confirm. Caddie shot list per round.
+- `src/pages/CourseSetup.jsx` — Redesigned: saved-course chips at top, inline search/import panel, manual hole editor. Import preserves existing notes.
+- `src/pages/Scorecard.jsx` — Round tracker: persists to `localStorage` (key: `golf_active_round`), hole grid with prev/next nav, flexible holes-played (1–18), "Save & Finish Round" early exit, photo import via Claude vision, auto-saves, round auto-complete detection.
+- `src/pages/History.jsx` — Round list with inline edit and delete. Shot list per round. "Move shots →" merge panel. "🔗 Unlinked shots" card for shots with no round_id.
 
 ### Hooks
 - `src/hooks/useCourseData.js` — loads single course hole row (par, yardages, hazards, notes) for Caddie tab
@@ -66,9 +78,17 @@ Schema files (run in order in Supabase SQL editor):
 - Club distances and miss tendencies (all clubs)
 - Shot history patterns (last 30 shots grouped by club: count, avg rating, recent outcomes)
 
-`buildUserMessage()` injects per-request:
+`buildUserMessage(situationText, courseHole, weather, roundNotes)` injects per-request:
 - Course hole data (par, yardages, hazards, green notes, personal notes) — only when course+hole selected
 - Current weather (temp, wind speed/direction/gusts, conditions) — only when weather loaded
+- Mid-round adjustments (from `rounds.notes`) — labeled as high-priority context overriding profile defaults
+
+`getRoundStrategy(courseName, allHoles, playerProfile, clubProfiles, shotHistory, weather, roundNotes)`:
+- Formats all course holes as a compact layout string
+- Uses same system prompt as hole caddie
+- Adds explicit rule: driver is default on par 4/5 unless specific hazard overrides
+- Returns: 3 focus themes + hole-by-hole tactical notes with named tee club per hole
+- Max 350 words, claude-haiku-4-5
 
 ## Scorecard feature notes
 
@@ -94,16 +114,18 @@ Schema files (run in order in Supabase SQL editor):
 - Minimum 5 qualifying rounds to display
 - "Use this handicap" rounds to integer (player_profile.handicap is integer column)
 
-## Next priorities
+## Next priorities / ideas
 
-1. **Scorecard UX restructure** — two distinct entry modes:
-   - "Track live round" — current hole-by-hole scoring as you play
-   - "Log completed round" — photo import OR quick total score save OR full hole-by-hole entry; saves immediately as complete
-   - Post-round editing from mode-picker: recent rounds list → tap to add/edit hole detail
+1. **Course maps / green maps** — no clean free API exists for this. Options to explore:
+   - Golfbert API has some course layout data
+   - SVG green diagrams drawn manually per hole (stored in DB)
+   - Photo upload per hole (user takes a photo of the green on the course, stored in Supabase Storage)
 
 2. **GPS auto-detect** — browser Geolocation to auto-select course and hole on Caddie tab mid-round
 
 3. **Stats / trends page** — scoring average, GIR%, FIR%, putts per round charted over time
+
+4. **Scorecard "log completed round" mode** — quick entry for after the fact: photo import or just enter total score, no hole-by-hole required
 
 ## Auth implementation details
 

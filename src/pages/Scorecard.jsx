@@ -96,14 +96,28 @@ function SummaryBar({ holeScores, holesPlayed }) {
   )
 }
 
-function HoleEntry({ holeNum, data, onFieldChange, saving }) {
+function HoleEntry({ holeNum, data, onFieldChange, saving, hasPrev, hasNext, onPrev, onNext }) {
   const par = data?.par ?? null
 
   return (
     <div className="hole-entry card">
       <div className="hole-entry-header">
-        <span className="hole-entry-title">Hole {holeNum}</span>
-        {saving && <span className="text-muted" style={{ fontSize: 12 }}>Saving…</span>}
+        <button
+          className="hole-nav-btn"
+          onClick={onPrev}
+          disabled={!hasPrev}
+          aria-label="Previous hole"
+        >‹</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="hole-entry-title">Hole {holeNum}</span>
+          {saving && <span className="text-muted" style={{ fontSize: 12 }}>Saving…</span>}
+        </div>
+        <button
+          className="hole-nav-btn"
+          onClick={onNext}
+          disabled={!hasNext}
+          aria-label="Next hole"
+        >›</button>
       </div>
 
       <div className="entry-field">
@@ -208,9 +222,37 @@ export default function Scorecard() {
 
   useEffect(() => { roundIdRef.current = roundId }, [roundId])
 
+  // Restore active round from localStorage on mount, then load course names
   useEffect(() => {
+    const saved = localStorage.getItem('golf_active_round')
+    if (saved) {
+      try {
+        const state = JSON.parse(saved)
+        if (state.phase && state.phase !== 'setup' && state.roundId) {
+          setPhase(state.phase)
+          setRoundId(state.roundId)
+          roundIdRef.current = state.roundId
+          setRoundForm(state.roundForm)
+          setHoleScores(state.holeScores || {})
+          holeScoresRef.current = state.holeScores || {}
+        }
+      } catch { /* ignore corrupt data */ }
+    }
     loadCourseNames()
   }, [])
+
+  // Save active round state to localStorage whenever it changes
+  useEffect(() => {
+    if (phase === 'setup') {
+      localStorage.removeItem('golf_active_round')
+      return
+    }
+    try {
+      localStorage.setItem('golf_active_round', JSON.stringify({
+        phase, roundId, roundForm, holeScores: holeScoresRef.current,
+      }))
+    } catch { /* storage quota - ignore */ }
+  }, [phase, roundId, roundForm, holeScores])
 
   useEffect(() => {
     if (roundForm.course_name.trim()) {
@@ -408,6 +450,16 @@ export default function Scorecard() {
     setSavingHoles(prev => ({ ...prev, [holeNum]: false }))
   }
 
+  function handleFinishEarly() {
+    if (finalizingRef.current) return
+    const scored = HOLES_18.slice(0, roundForm.holes_played).filter(h => holeScores[h]?.score != null)
+    if (scored.length === 0) { alert('No scores entered yet.'); return }
+    const totalScore = scored.reduce((s, h) => s + (holeScores[h].score || 0), 0)
+    const totalPar = scored.reduce((s, h) => s + (holeScores[h].par || 0), 0)
+    finalizingRef.current = true
+    finalizeRound(totalScore, totalPar || null)
+  }
+
   async function finalizeRound(totalScore, totalPar) {
     const rId = roundIdRef.current
     if (!rId) return
@@ -483,6 +535,7 @@ export default function Scorecard() {
   }
 
   function resetRound() {
+    localStorage.removeItem('golf_active_round')
     Object.values(saveTimers.current).forEach(clearTimeout)
     saveTimers.current = {}
     finalizingRef.current = false
@@ -670,12 +723,34 @@ export default function Scorecard() {
           </p>
 
           <div className="form-group">
-            <label className="form-label">Holes Played</label>
-            <Toggle
-              value={String(roundForm.holes_played)}
-              options={[{ label: '9 holes', value: '9' }, { label: '18 holes', value: '18' }]}
-              onChange={v => { if (v) setRoundForm(f => ({ ...f, holes_played: parseInt(v) })) }}
-            />
+            <label className="form-label">Holes to play</label>
+            <div className="holes-played-row">
+              {[9, 18].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`holes-quick-btn ${roundForm.holes_played === n ? 'active' : ''}`}
+                  onClick={() => setRoundForm(f => ({ ...f, holes_played: n }))}
+                >
+                  {n}
+                </button>
+              ))}
+              <input
+                className="form-input holes-custom-input"
+                type="number"
+                min={1}
+                max={18}
+                placeholder="Custom"
+                value={roundForm.holes_played}
+                onChange={e => {
+                  const v = parseInt(e.target.value)
+                  if (v >= 1 && v <= 18) setRoundForm(f => ({ ...f, holes_played: v }))
+                }}
+              />
+            </div>
+            <p className="text-muted" style={{ fontSize: 12, marginTop: 4 }}>
+              Playing 12 today? Set it here — you can also finish early from the scoring screen.
+            </p>
           </div>
 
           <button
@@ -760,6 +835,12 @@ export default function Scorecard() {
         <p className="text-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>
           Tap a hole to enter score
         </p>
+        <button
+          className="btn btn-secondary finish-early-btn"
+          onClick={handleFinishEarly}
+        >
+          ✓ Save &amp; Finish Round
+        </button>
       </div>
 
       {expandedHole !== null && (
@@ -769,6 +850,10 @@ export default function Scorecard() {
           data={holeScores[expandedHole] || {}}
           onFieldChange={setHoleField}
           saving={!!savingHoles[expandedHole]}
+          hasPrev={expandedHole > activeHoles[0]}
+          hasNext={expandedHole < activeHoles[activeHoles.length - 1]}
+          onPrev={() => setExpandedHole(h => h - 1)}
+          onNext={() => setExpandedHole(h => h + 1)}
         />
       )}
     </div>

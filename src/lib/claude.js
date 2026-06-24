@@ -83,7 +83,7 @@ RULES:
 - Never ask clarifying questions. Work with what you are given.`
 }
 
-function buildUserMessage(situationText, courseHole, weather) {
+function buildUserMessage(situationText, courseHole, weather, roundNotes) {
   const courseContext = courseHole
     ? `COURSE CONTEXT:
 Hole ${courseHole.hole_number} | Par ${courseHole.par}
@@ -102,7 +102,14 @@ Wind: ${weather.wind_speed} mph from the ${windDir(weather.wind_deg)}${weather.w
 Sky: ${weather.condition}`
     : ''
 
-  return `${courseContext}${weatherContext}
+  const adjustmentsContext = roundNotes?.trim()
+    ? `
+
+MID-ROUND ADJUSTMENTS (player noted these trends this round — factor in, they override typical tendencies):
+${roundNotes.trim()}`
+    : ''
+
+  return `${courseContext}${weatherContext}${adjustmentsContext}
 
 PLAYER'S SITUATION:
 ${situationText}`
@@ -198,7 +205,7 @@ If there is no scorecard visible in this image: {"error": "No scorecard detected
   return parsed
 }
 
-export async function getClubRecommendation(situationText, playerProfile, clubProfiles, courseHole, shotHistory, weather) {
+export async function getClubRecommendation(situationText, playerProfile, clubProfiles, courseHole, shotHistory, weather, roundNotes) {
   if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_anthropic_api_key') {
     throw new Error('Anthropic API key not configured. Add VITE_ANTHROPIC_API_KEY to your .env file.')
   }
@@ -218,7 +225,7 @@ export async function getClubRecommendation(situationText, playerProfile, clubPr
       messages: [
         {
           role: 'user',
-          content: buildUserMessage(situationText, courseHole, weather),
+          content: buildUserMessage(situationText, courseHole, weather, roundNotes),
         },
       ],
     }),
@@ -231,4 +238,72 @@ export async function getClubRecommendation(situationText, playerProfile, clubPr
 
   const data = await response.json()
   return data.content[0].text
+}
+
+export async function getRoundStrategy(courseName, allHoles, playerProfile, clubProfiles, shotHistory, weather, roundNotes) {
+  if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_anthropic_api_key') {
+    throw new Error('Anthropic API key not configured.')
+  }
+
+  const holeList = allHoles.length > 0
+    ? allHoles.map(h => {
+        const yards = [h.yardage_black, h.yardage_blue, h.yardage_white].filter(Boolean)
+        return `H${h.hole_number} | Par ${h.par}${yards.length ? ` | ${yards.join('/')} yds` : ''}${h.hazards ? ` | ⚠ ${h.hazards}` : ''}${h.personal_notes ? ` | ${h.personal_notes}` : ''}`
+      }).join('\n')
+    : 'No hole data on file for this course — give general strategy based on player profile and conditions.'
+
+  const weatherLine = weather
+    ? `\nCONDITIONS: ${weather.temp}°F, ${weather.wind_speed} mph from ${windDir(weather.wind_deg)}${weather.wind_gust ? ` (gusts ${weather.wind_gust})` : ''}, ${weather.condition}`
+    : ''
+
+  const notesLine = roundNotes?.trim()
+    ? `\nMID-ROUND ADJUSTMENTS: ${roundNotes.trim()}`
+    : ''
+
+  const userMessage = `Round strategy for: ${courseName}
+
+COURSE LAYOUT:
+${holeList}
+${weatherLine}${notesLine}
+
+TEE SHOT RULES:
+- On par 4s and par 5s, DRIVER is the default tee club unless there is a specific reason to lay back (e.g. OB right combined with a right miss tendency, a forced carry that exceeds driver carry, or tight landing zone with driver but comfortable with 3-wood). Never assume irons off par 4/5 tees without a clear reason.
+- Always name the actual recommended tee club in each hole note.
+- Factor the player's miss tendency into left/right target lines.
+
+Respond in this exact format:
+
+🗺️ ROUND PLAN: ${courseName}
+
+📊 KEY THEMES
+[3 focus points tailored to this player's tendencies and today's conditions — reference specific clubs, miss directions, and which holes to attack vs play conservatively]
+
+⛳ HOLE-BY-HOLE
+[Each hole on its own line: "H1 (Par 4, ~360 yds): [tee club + target] → [approach note or key hazard to respect]"]
+
+Under 350 words total. Be decisive and specific.`
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 900,
+      system: buildSystemPrompt(playerProfile, clubProfiles, shotHistory),
+      messages: [{ role: 'user', content: userMessage }],
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error?.error?.message || `API error ${response.status}`)
+  }
+
+  const data2 = await response.json()
+  return data2.content[0].text
 }

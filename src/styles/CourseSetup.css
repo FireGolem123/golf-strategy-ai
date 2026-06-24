@@ -9,6 +9,110 @@
   margin-bottom: 14px;
 }
 
+/* Saved courses quick-pick */
+.saved-courses-row {
+  margin-bottom: 14px;
+}
+
+.saved-courses-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray-500);
+  margin-bottom: 8px;
+}
+
+.course-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.course-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--green-600);
+  background: var(--green-900);
+  color: var(--green-300);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.course-chip.active {
+  background: var(--green-700);
+  border-color: var(--green-400);
+  color: var(--white);
+}
+
+.course-chip:active {
+  transform: scale(0.96);
+}
+
+/* Course name + search trigger row */
+.course-name-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.search-trigger-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  height: 44px;
+}
+
+.search-trigger-btn.active {
+  background: var(--green-700);
+  border-color: var(--green-400);
+  color: var(--white);
+}
+
+/* Inline search panel */
+.search-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--green-700);
+}
+
+.search-panel-hint {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* Hole editor header */
+.hole-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.hole-editor-hint {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* Personal notes label sub-text */
+.form-label-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--gray-500);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Notes indicator in hole list */
+.hole-has-notes {
+  font-size: 12px;
+}
+
 /* Hole tabs */
 .hole-tabs {
   display: flex;

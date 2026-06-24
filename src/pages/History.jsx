@@ -12,12 +12,17 @@ function StarDisplay({ value }) {
   )
 }
 
-function RoundCard({ round, shots, onUpdate, onDelete }) {
+function RoundCard({ round, shots, allRounds, onUpdate, onDelete, onMoveShots }) {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({})
+  const [showMerge, setShowMerge] = useState(false)
+  const [mergeTarget, setMergeTarget] = useState('')
+  const [merging, setMerging] = useState(false)
+
+  const otherRounds = allRounds.filter(r => r.id !== round.id)
 
   const ratedShots = shots.filter(s => s.suggestion_rating)
   const avgRating = ratedShots.length > 0
@@ -27,6 +32,15 @@ function RoundCard({ round, shots, onUpdate, onDelete }) {
   const outcomes = shots.filter(s => s.outcome).map(s => s.outcome)
   const outcomeCounts = outcomes.reduce((acc, o) => { acc[o] = (acc[o] || 0) + 1; return acc }, {})
   const topOutcome = Object.entries(outcomeCounts).sort((a, b) => b[1] - a[1])[0]
+
+  async function handleMerge() {
+    if (!mergeTarget) return
+    setMerging(true)
+    await onMoveShots(round.id, mergeTarget)
+    setMerging(false)
+    setShowMerge(false)
+    setExpanded(false)
+  }
 
   function startEdit() {
     setEditForm({
@@ -196,10 +210,18 @@ function RoundCard({ round, shots, onUpdate, onDelete }) {
           {/* Action bar */}
           <div className="round-actions">
             <button className="btn btn-secondary round-action-btn" onClick={startEdit}>
-              Edit round
+              Edit
             </button>
+            {shots.length > 0 && otherRounds.length > 0 && (
+              <button
+                className={`btn btn-secondary round-action-btn ${showMerge ? 'active-action' : ''}`}
+                onClick={() => { setShowMerge(v => !v); setConfirmDelete(false) }}
+              >
+                Move shots →
+              </button>
+            )}
             {!confirmDelete ? (
-              <button className="btn btn-danger round-action-btn" onClick={() => setConfirmDelete(true)}>
+              <button className="btn btn-danger round-action-btn" onClick={() => { setConfirmDelete(true); setShowMerge(false) }}>
                 Delete
               </button>
             ) : (
@@ -214,7 +236,108 @@ function RoundCard({ round, shots, onUpdate, onDelete }) {
               </div>
             )}
           </div>
+
+          {showMerge && (
+            <div className="merge-panel">
+              <p className="merge-label">Move all {shots.length} shot{shots.length !== 1 ? 's' : ''} to:</p>
+              <div className="merge-row">
+                <select
+                  className="form-select merge-select"
+                  value={mergeTarget}
+                  onChange={e => setMergeTarget(e.target.value)}
+                >
+                  <option value="">Select a round…</option>
+                  {otherRounds.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.date} · {r.course_name || 'Unknown'}{r.score ? ` (${r.score})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="btn btn-primary merge-btn"
+                  onClick={handleMerge}
+                  disabled={!mergeTarget || merging}
+                >
+                  {merging ? '…' : 'Move'}
+                </button>
+              </div>
+              <p className="merge-hint">This round will stay (you can delete it after).</p>
+            </div>
+          )}
         </>
+      )}
+    </div>
+  )
+}
+
+function UnlinkedShotRow({ shot, rounds, onAssign }) {
+  const [selectedRound, setSelectedRound] = useState('')
+  const [assigning, setAssigning] = useState(false)
+
+  const date = shot.created_at ? new Date(shot.created_at).toLocaleDateString() : ''
+  const preview = shot.conditions_noted?.slice(0, 70) || (shot.club_suggested ? `Caddie suggested ${shot.club_suggested}` : 'No situation recorded')
+
+  async function handleAssign() {
+    if (!selectedRound) return
+    setAssigning(true)
+    await onAssign(shot.id, selectedRound)
+  }
+
+  return (
+    <div className="unlinked-shot-row">
+      <div className="unlinked-shot-info">
+        <span className="unlinked-shot-date">{date}</span>
+        <span className="unlinked-shot-preview">{preview}{preview.length === 70 ? '…' : ''}</span>
+        {shot.club_suggested && (
+          <span className="unlinked-shot-clubs">
+            Suggested: <strong>{shot.club_suggested}</strong>
+            {shot.club_used ? ` · Hit: ${shot.club_used}` : ''}
+          </span>
+        )}
+      </div>
+      <div className="unlinked-assign-row">
+        <select
+          className="form-select unlinked-select"
+          value={selectedRound}
+          onChange={e => setSelectedRound(e.target.value)}
+        >
+          <option value="">Assign to round…</option>
+          {rounds.map(r => (
+            <option key={r.id} value={r.id}>{r.date} · {r.course_name || 'Unknown'}</option>
+          ))}
+        </select>
+        <button
+          className="btn btn-secondary unlinked-assign-btn"
+          onClick={handleAssign}
+          disabled={!selectedRound || assigning}
+        >
+          {assigning ? '…' : 'Add'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function UnlinkedShots({ shots, rounds, onAssign }) {
+  const [expanded, setExpanded] = useState(false)
+  if (shots.length === 0) return null
+
+  return (
+    <div className="card unlinked-card">
+      <button className="unlinked-header" onClick={() => setExpanded(e => !e)}>
+        <div className="unlinked-header-left">
+          <span className="unlinked-title">🔗 {shots.length} unlinked caddie shot{shots.length !== 1 ? 's' : ''}</span>
+          <span className="unlinked-subtitle">Used the caddie outside a round — tap to assign</span>
+        </div>
+        <span className="round-chevron">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <div className="unlinked-list">
+          <hr className="divider" />
+          {shots.map(shot => (
+            <UnlinkedShotRow key={shot.id} shot={shot} rounds={rounds} onAssign={onAssign} />
+          ))}
+        </div>
       )}
     </div>
   )
@@ -223,6 +346,7 @@ function RoundCard({ round, shots, onUpdate, onDelete }) {
 export default function History() {
   const [rounds, setRounds] = useState([])
   const [shotsByRound, setShotsByRound] = useState({})
+  const [orphanShots, setOrphanShots] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalShots: 0, avgRating: null })
 
@@ -244,14 +368,18 @@ export default function History() {
     const roundList = roundsData || []
     const shotList = shotsData || []
 
+    const roundIds = new Set(roundList.map(r => r.id))
     const grouped = {}
     roundList.forEach(r => { grouped[r.id] = [] })
+    const orphans = []
     shotList.forEach(s => {
-      if (s.round_id && grouped[s.round_id]) grouped[s.round_id].push(s)
+      if (s.round_id && roundIds.has(s.round_id)) grouped[s.round_id].push(s)
+      else orphans.push(s)
     })
 
     setRounds(roundList)
     setShotsByRound(grouped)
+    setOrphanShots(orphans)
 
     const ratedShots = shotList.filter(s => s.suggestion_rating)
     setStats({
@@ -268,6 +396,33 @@ export default function History() {
     const { error } = await supabase.from('rounds').update(updates).eq('id', id)
     if (!error) {
       setRounds(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r))
+    }
+  }
+
+  async function handleMoveShots(fromRoundId, toRoundId) {
+    const { error } = await supabase
+      .from('shot_history').update({ round_id: toRoundId }).eq('round_id', fromRoundId)
+    if (!error) {
+      const movingShots = shotsByRound[fromRoundId] || []
+      setShotsByRound(prev => ({
+        ...prev,
+        [fromRoundId]: [],
+        [toRoundId]: [...(prev[toRoundId] || []), ...movingShots.map(s => ({ ...s, round_id: toRoundId }))],
+      }))
+    }
+  }
+
+  async function handleAssignShot(shotId, roundId) {
+    const { error } = await supabase.from('shot_history').update({ round_id: roundId }).eq('id', shotId)
+    if (!error) {
+      const shot = orphanShots.find(s => s.id === shotId)
+      if (shot) {
+        setOrphanShots(prev => prev.filter(s => s.id !== shotId))
+        setShotsByRound(prev => ({
+          ...prev,
+          [roundId]: [...(prev[roundId] || []), { ...shot, round_id: roundId }],
+        }))
+      }
     }
   }
 
@@ -311,6 +466,12 @@ export default function History() {
         </div>
       )}
 
+      <UnlinkedShots
+        shots={orphanShots}
+        rounds={rounds}
+        onAssign={handleAssignShot}
+      />
+
       {rounds.length === 0 ? (
         <div className="empty-state card">
           <p>No rounds yet. Your shot history will appear here after using the Caddie tab.</p>
@@ -321,8 +482,10 @@ export default function History() {
             key={round.id}
             round={round}
             shots={shotsByRound[round.id] || []}
+            allRounds={rounds}
             onUpdate={handleUpdateRound}
             onDelete={handleDeleteRound}
+            onMoveShots={handleMoveShots}
           />
         ))
       )}

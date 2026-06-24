@@ -292,6 +292,83 @@
   color: var(--gold);
 }
 
+/* Mode toggle */
+.caddie-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--green-600);
+  background: var(--green-900);
+  color: var(--gray-400);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.mode-btn.active {
+  background: var(--green-700);
+  border-color: var(--green-400);
+  color: var(--white);
+}
+
+.mode-btn:active {
+  transform: scale(0.97);
+}
+
+/* Round notes section */
+.round-notes-section {
+  background: var(--green-800);
+  border: 1px solid var(--green-600);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.round-notes-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  color: var(--green-300);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.round-notes-chevron {
+  font-size: 10px;
+  color: var(--green-500);
+}
+
+.round-notes-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--green-700);
+}
+
+.round-notes-body .form-textarea {
+  margin-top: 12px;
+}
+
+.round-notes-hint {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 8px;
+}
+
 /* Success */
 .success-banner {
   background: rgba(76, 175, 119, 0.15);
