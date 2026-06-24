@@ -114,7 +114,8 @@ Schema files (run in order in Supabase SQL editor):
 - Minimum 5 qualifying rounds to display
 - "Use this handicap" rounds to integer (player_profile.handicap is integer column)
 
-### Session 6 additions
+### Session 6 additions (full UI overhaul — all emojis removed, design system locked)
+
 - **Logo** — `src/components/Logo.jsx`: `LogoMark` (pin + circuit SVG) and `LogoHorizontal` (mark + CADDIE AI wordmark + tagline). Standalone SVG at `assets/logo/caddie-ai-mark.svg`.
 - **Background texture (2C)** — radial green glow from top + crosshatch grid on `html, body`
 - **Card highlight** — 1px top border at 6% white opacity on all `.card` elements for lifted feel
@@ -125,6 +126,16 @@ Schema files (run in order in Supabase SQL editor):
 - **Layout overflow fix** — `overflow: hidden` on `.app-layout` prevents long text from widening the page
 - **Hole info badge fixed height** — 82px fixed height prevents layout shift when hole is selected/deselected
 - **UI Style Guide** — `UI_STYLE_GUIDE.md` documents full color scale, typography, component specs, logo usage
+- **PWA manifest** — `public/manifest.json` + `icon-192.png` / `icon-512.png`: bookmark/home screen shows logo, not "C"
+- **Favicon** — `public/favicon.svg` (logo mark on dark green rounded square), wired in `index.html`
+- **Page title** — changed from "Golf Strategy AI" to "Caddie AI"
+- **Auth page logo** — golf emoji replaced with `LogoMark` component (72px)
+- **Scrollbar** — hidden globally (`::-webkit-scrollbar: display none`, `scrollbar-width: none`)
+- **Scorecard import** — camera SVG replaces 📷 emoji
+- **Course search** — magnifying glass SVG replaces 🔍 emoji
+- **History unlinked shots** — link chain SVG replaces 🔗 emoji; select right padding fixed
+- **Layout overflow** — `overflow: hidden` on `.app-layout` prevents long text widening page
+- **Hole info badge** — fixed 82px height, transparent when empty — no layout shift on hole select
 
 ## Next priorities / ideas
 

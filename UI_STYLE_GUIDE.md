@@ -242,12 +242,29 @@ All icons use `currentColor` so they adapt to active/inactive nav states.
 
 ---
 
+## PWA / Bookmark Icons
+
+| File | Size | Usage |
+|---|---|---|
+| `public/favicon.svg` | SVG | Browser tab icon |
+| `public/icon-192.png` | 192×192 | Android home screen / Chrome bookmark |
+| `public/icon-512.png` | 512×512 | Splash screen |
+| `public/manifest.json` | — | PWA manifest: name "Caddie AI", standalone, dark theme |
+
+Generated via `scripts/gen-icons.mjs` (requires `sharp` dev dependency).
+`index.html` links: `rel="icon"`, `rel="apple-touch-icon"`, `rel="manifest"`.
+
+---
+
 ## Key Rules
 
-1. **No emojis** in UI — replaced with inline SVG icons and pill tags
+1. **No emojis anywhere** — all replaced with inline SVG icons and pill tags
 2. **No light mode** — outdoor app, dark is better in sunlight
-3. Cards always have the subtle top highlight border
-4. Section labels are plain uppercase text (no left accent bar)
+3. Cards always have the subtle top highlight border (`border-top-color: rgba(255,255,255,0.06)`)
+4. Section labels are plain uppercase text — no left accent bar
 5. All SVGs use `currentColor` or hardcoded brand colors from the palette above
 6. Mic button is always SVG, never emoji
-7. Hole info badge has fixed height (82px) so layout never shifts on hole selection
+7. Hole info badge has fixed height (82px) so layout never shifts on hole select
+8. `.app-layout` has `overflow: hidden` — prevents any content from widening the page
+9. Page title: "Caddie AI" (not "Golf Strategy AI")
+10. Auth page header uses `<LogoMark size={72} />` — no emoji
