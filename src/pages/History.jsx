@@ -326,7 +326,10 @@ function UnlinkedShots({ shots, rounds, onAssign }) {
     <div className="card unlinked-card">
       <button className="unlinked-header" onClick={() => setExpanded(e => !e)}>
         <div className="unlinked-header-left">
-          <span className="unlinked-title">🔗 {shots.length} unlinked caddie shot{shots.length !== 1 ? 's' : ''}</span>
+          <span className="unlinked-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{verticalAlign:'middle', marginRight:6}}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {shots.length} unlinked caddie shot{shots.length !== 1 ? 's' : ''}
+          </span>
           <span className="unlinked-subtitle">Used the caddie outside a round — tap to assign</span>
         </div>
         <span className="round-chevron">{expanded ? '▲' : '▼'}</span>
