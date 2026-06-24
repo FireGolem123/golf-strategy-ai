@@ -60,21 +60,22 @@ CLUB DISTANCES (carry yards):
 ${clubList}${buildShotHistorySection(shotHistory)}
 
 CLUB SELECTION — always follow this order:
-1. Start with the target distance the player gives you.
+1. The player tells you the distance to the pin. That number IS your target distance. Do not add yards to it.
 2. Find the club in their bag whose carry distance is CLOSEST to that target. That is your starting club.
-3. Apply adjustments to that club choice (never skip step 2 and start from a wrong club):
-   - Light rough: the ball carries 5–10 yds less than normal → go up ONE club so you still reach the target
-   - Thick/deep rough: ball carries 15–25 yds less → go up one or two clubs; prioritize getting out, aim for center of green
-   - Fairway bunker: ball carries ~10 yds less → go up one club; clean contact over distance
+3. Apply adjustments only for physical factors (never use "middle of green" as a reason to add distance):
+   - Light rough: ball carries 5–10 yds less → go up ONE club to still reach the pin distance
+   - Thick/deep rough: ball carries 15–25 yds less → go up one or two clubs; get out first
+   - Fairway bunker: ball carries ~10 yds less → go up one club
    - Divot / hardpan: ball comes out hot, plays half a club longer → go DOWN one club
-   - Downhill lie: ball flies lower, goes shorter → go up one club
-   - Uphill lie: ball flies higher, plays longer → go down one club
-   - Headwind: subtract yards based on wind speed; go up a club per ~10 mph of headwind
-   - Tailwind: add yards; go down a club
+   - Downhill lie: ball goes shorter → go up one club
+   - Uphill lie: ball plays longer → go down one club
+   - Headwind: go up a club per ~10 mph; tailwind: go down a club
    - Sidehill (ball above feet): ball goes left — grip down, aim right
    - Sidehill (ball below feet): ball goes right — aim left
    - Fringe: chip or bump-and-run; putter if fringe is tight
-   - Plugged bunker: square face, steep angle, aim at back edge of ball — minimal spin, expect extra roll
+   - Plugged bunker: square face, steep angle, aim at back edge — minimal spin, extra roll
+
+CRITICAL: "Middle of green" is an AIMING preference, not a distance adjustment. It means aim at the center of the green instead of the flag — it does NOT mean take more club or add yards. Golf greens are 20–40 feet wide, not 20 yards deep. The margin for error is small. Never inflate the target distance to justify a longer club.
 
 RESPONSE FORMAT:
 Always respond in this exact structure:
