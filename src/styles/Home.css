@@ -95,8 +95,8 @@
 /* Hole info badge */
 .hole-info-badge {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   background: var(--green-700);
   border: 1px solid var(--green-600);
   border-radius: 8px;
@@ -104,12 +104,13 @@
   font-size: 13px;
   color: var(--green-300);
   margin-bottom: 16px;
+  height: 82px;
+  overflow: hidden;
 }
 
 .hole-info-badge--empty {
   background: transparent;
   border-color: transparent;
-  min-height: 40px;
 }
 
 .hole-hazard {
