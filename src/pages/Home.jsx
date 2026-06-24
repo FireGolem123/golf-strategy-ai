@@ -397,7 +397,20 @@ export default function Home() {
               disabled={!isSupported}
               aria-label={isListening ? 'Stop listening' : 'Start listening'}
             >
-              <span className="mic-icon">{isListening ? '⏹' : '🎙'}</span>
+              <span className="mic-icon">
+                {isListening ? (
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>
+                  </svg>
+                ) : (
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="11" rx="3"/>
+                    <path d="M5 10a7 7 0 0014 0"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                    <line x1="9" y1="21" x2="15" y2="21"/>
+                  </svg>
+                )}
+              </span>
               <span className="mic-label">{isListening ? 'Tap to stop' : 'Tap to speak'}</span>
             </button>
 

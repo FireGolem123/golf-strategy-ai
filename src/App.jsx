@@ -12,13 +12,23 @@ import './styles/App.css'
 // ── Nav icons ──────────────────────────────────────────────────────
 // Feather-icon style: 24×24 viewBox, 2px stroke, rounded joins/caps
 
-function IconCaddie() {
+function IconCaddie({ active }) {
+  if (active) {
+    return (
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="21" x2="12" y2="6" stroke="currentColor" strokeWidth="2"/>
+        <polygon points="12,6 19,9.5 12,13" fill="currentColor"/>
+        <ellipse cx="12" cy="21.5" rx="5" ry="1.6" stroke="currentColor" strokeWidth="1.4" fill="none" opacity="0.5"/>
+        <circle cx="12" cy="21.5" r="1.8" fill="currentColor"/>
+      </svg>
+    )
+  }
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="20" r="2" />
-      <line x1="12" y1="18" x2="12" y2="4" />
-      <polyline points="12,4 18,7 12,10" />
+      <line x1="12" y1="21" x2="12" y2="6" />
+      <polyline points="12,6 19,9.5 12,13" />
+      <ellipse cx="12" cy="21.5" rx="5" ry="1.6" opacity="0.5"/>
     </svg>
   )
 }
@@ -70,8 +80,12 @@ function BottomNav() {
   return (
     <nav className="bottom-nav">
       <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-        <span className="nav-icon"><IconCaddie /></span>
-        <span className="nav-label">Caddie</span>
+        {({ isActive }) => (
+          <>
+            <span className="nav-icon"><IconCaddie active={isActive} /></span>
+            <span className="nav-label">Caddie</span>
+          </>
+        )}
       </NavLink>
       <NavLink to="/profile" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
         <span className="nav-icon"><IconProfile /></span>
