@@ -21,6 +21,7 @@ export default function Profile() {
   const [profile, setProfile] = useState({
     ball_flight: 'straight',
     general_tendency: '',
+    caddie_preferences: '',
     handicap: '',
     home_course: '',
   })
@@ -48,6 +49,7 @@ export default function Profile() {
       setProfile({
         ball_flight: profileData.ball_flight || 'straight',
         general_tendency: profileData.general_tendency || '',
+        caddie_preferences: profileData.caddie_preferences || '',
         handicap: profileData.handicap ?? '',
         home_course: profileData.home_course || '',
       })
@@ -150,6 +152,7 @@ export default function Profile() {
       user_id: user.id,
       ball_flight: profile.ball_flight,
       general_tendency: profile.general_tendency,
+      caddie_preferences: profile.caddie_preferences,
       handicap: profile.handicap !== '' ? parseInt(profile.handicap) : null,
       home_course: profile.home_course,
       updated_at: new Date().toISOString(),
@@ -234,6 +237,18 @@ export default function Profile() {
             placeholder="e.g. Tend to chunk short irons when nervous, strong off the tee, miss right under pressure"
             value={profile.general_tendency}
             onChange={e => setProfile(p => ({ ...p, general_tendency: e.target.value }))}
+            rows={3}
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Caddie Preferences</label>
+          <p className="form-label-sub">How you want the caddie to think — target strategy, risk tolerance, shot shape preferences</p>
+          <textarea
+            className="form-textarea"
+            placeholder="e.g. Aim for middle of green over chasing pins. I prefer to be below the hole. Play conservatively on par 3s."
+            value={profile.caddie_preferences}
+            onChange={e => setProfile(p => ({ ...p, caddie_preferences: e.target.value }))}
             rows={3}
           />
         </div>
