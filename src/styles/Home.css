@@ -106,6 +106,9 @@
   margin-bottom: 16px;
   height: 82px;
   overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .hole-info-badge--empty {

@@ -3,14 +3,18 @@
   flex-direction: column;
   height: 100vh;
   max-width: 480px;
+  width: 100%;
   margin: 0 auto;
   position: relative;
+  overflow: hidden;
 }
 
 .app-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-bottom: 72px;
+  min-width: 0;
 }
 
 /* Bottom Navigation */
