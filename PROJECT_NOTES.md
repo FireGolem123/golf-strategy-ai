@@ -146,7 +146,7 @@ Schema files (run in order in Supabase SQL editor):
 
 2. **GPS auto-detect** — browser Geolocation to auto-select course and hole on Caddie tab mid-round
 
-3. **Stats / trends page** — scoring average, GIR%, FIR%, putts per round charted over time
+3. **Stats / trends page** — scoring average, GIR%, FIR%, putts per round charted over time *(user wants this eventually, not a current priority)*
 
 4. **Scorecard "log completed round" mode** — quick entry for after the fact: photo import or just enter total score, no hole-by-hole required
 
