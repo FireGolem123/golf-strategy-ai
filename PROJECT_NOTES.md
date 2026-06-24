@@ -114,6 +114,18 @@ Schema files (run in order in Supabase SQL editor):
 - Minimum 5 qualifying rounds to display
 - "Use this handicap" rounds to integer (player_profile.handicap is integer column)
 
+### Session 6 additions
+- **Logo** — `src/components/Logo.jsx`: `LogoMark` (pin + circuit SVG) and `LogoHorizontal` (mark + CADDIE AI wordmark + tagline). Standalone SVG at `assets/logo/caddie-ai-mark.svg`.
+- **Background texture (2C)** — radial green glow from top + crosshatch grid on `html, body`
+- **Card highlight** — 1px top border at 6% white opacity on all `.card` elements for lifted feel
+- **Mic button** — replaced emoji with proper SVG microphone, double ring glow, "TAP TO SPEAK" label
+- **Active Caddie nav icon** — uses filled logo pin mark SVG instead of generic flag
+- **Recommendation pills** — colored pill tags (SITUATION / PLAY / RISK / CONDITIONS) replace emoji section headers
+- **Mode toggle icons** — inline SVG pin and map icons replace text-only buttons
+- **Layout overflow fix** — `overflow: hidden` on `.app-layout` prevents long text from widening the page
+- **Hole info badge fixed height** — 82px fixed height prevents layout shift when hole is selected/deselected
+- **UI Style Guide** — `UI_STYLE_GUIDE.md` documents full color scale, typography, component specs, logo usage
+
 ## Next priorities / ideas
 
 1. **Course maps / green maps** — no clean free API exists for this. Options to explore:

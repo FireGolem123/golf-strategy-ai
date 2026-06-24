@@ -1,0 +1,16 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pin shaft -->
+  <line x1="20" y1="30" x2="20" y2="10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Flag -->
+  <polygon points="20,10 32,15 20,20" fill="#639922"/>
+  <!-- Base shadow ellipse -->
+  <ellipse cx="20" cy="31.5" rx="7" ry="2.2" stroke="#3B6D11" stroke-width="1.2" fill="none"/>
+  <!-- Base circle -->
+  <circle cx="20" cy="31.5" r="2.2" fill="#97C459"/>
+  <!-- Circuit branch lines -->
+  <line x1="20" y1="29.3" x2="20" y2="24.5" stroke="#97C459" stroke-width="1.2"/>
+  <line x1="20" y1="24.5" x2="26" y2="21.5" stroke="#97C459" stroke-width="1.2"/>
+  <circle cx="26" cy="21.5" r="1.8" fill="#C0DD97"/>
+  <line x1="20" y1="24.5" x2="14" y2="21.5" stroke="#97C459" stroke-width="1.2"/>
+  <circle cx="14" cy="21.5" r="1.8" fill="#C0DD97"/>
+</svg>
