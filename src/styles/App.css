@@ -23,7 +23,7 @@
   max-width: 480px;
   display: flex;
   background: var(--green-800);
-  border-top: 1px solid var(--green-600);
+  border-top: 1px solid var(--green-700);
   height: 64px;
   z-index: 100;
 }
@@ -34,14 +34,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  color: var(--gray-400);
+  gap: 3px;
+  color: var(--gray-500);
   transition: color 0.15s;
   padding: 8px 0;
+  position: relative;
 }
 
 .nav-item.active {
   color: var(--green-300);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 2px;
+  background: var(--green-300);
+  border-radius: 0 0 2px 2px;
 }
 
 .nav-icon {
@@ -54,9 +67,9 @@
 }
 
 .nav-label {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 /* Shared page styles */
@@ -82,9 +95,9 @@
 
 /* Cards */
 .card {
-  background: var(--green-800);
-  border: 1px solid var(--green-600);
-  border-radius: 12px;
+  background: var(--green-750);
+  border: 1px solid var(--green-700);
+  border-radius: 14px;
   padding: 16px;
   margin-bottom: 12px;
 }
@@ -108,9 +121,9 @@
 .form-select,
 .form-textarea {
   width: 100%;
-  background: var(--green-900);
+  background: var(--green-800);
   border: 1px solid var(--green-600);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 12px;
   color: var(--white);
   font-size: 15px;
@@ -163,12 +176,16 @@
 
 .btn-primary {
   background: var(--green-400);
-  color: var(--green-900);
+  color: #fff;
   width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--green-300);
+  color: var(--green-900);
 }
 
 .btn-secondary {
