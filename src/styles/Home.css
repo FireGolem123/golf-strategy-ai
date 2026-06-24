@@ -3,20 +3,9 @@
 }
 
 .home-header {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   padding: 24px 0 20px;
-}
-
-.home-title {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--white);
-}
-
-.home-subtitle {
-  font-size: 14px;
-  color: var(--green-300);
-  margin-top: 4px;
 }
 
 /* Weather bar */

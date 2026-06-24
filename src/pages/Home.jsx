@@ -4,6 +4,7 @@ import { getClubRecommendation, getRoundStrategy } from '../lib/claude'
 import { getCurrentWeather, windDir } from '../lib/weather'
 import { useVoiceInput } from '../hooks/useVoiceInput'
 import { useCourseData } from '../hooks/useCourseData'
+import { LogoHorizontal } from '../components/Logo'
 import '../styles/Home.css'
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1)
@@ -235,8 +236,7 @@ export default function Home() {
   return (
     <div className="page home-page">
       <div className="home-header">
-        <h1 className="home-title">⛳ Golf Strategy AI</h1>
-        <p className="home-subtitle">Your AI caddie</p>
+        <LogoHorizontal />
       </div>
 
       {/* Weather bar */}
